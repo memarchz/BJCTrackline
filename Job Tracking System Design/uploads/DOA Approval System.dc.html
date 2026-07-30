@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#10201d;background:#eef1f0;-webkit-font-smoothing:antialiased}
+a{color:#0f766e;text-decoration:none}a:hover{color:#0b5e57}
+input,select,textarea,button{font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#0f766e;box-shadow:0 0 0 3px rgba(15,118,110,.14)}
+::placeholder{color:#9aa7a3}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#cdd6d3;border-radius:8px;border:2px solid #eef1f0}
+@keyframes toastIn{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popIn{from{opacity:0;transform:scale(.94) translateY(6px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes ringPulse{0%{box-shadow:0 0 0 0 rgba(15,118,110,.35)}70%{box-shadow:0 0 0 8px rgba(15,118,110,0)}100%{box-shadow:0 0 0 0 rgba(15,118,110,0)}}
+@keyframes badgePop{0%{transform:scale(0)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes bellRing{0%,100%{transform:rotate(0)}20%{transform:rotate(-14deg)}40%{transform:rotate(11deg)}60%{transform:rotate(-7deg)}80%{transform:rotate(4deg)}}
+</style>
+</helmet>
+<div style="display:flex;height:100vh;min-height:640px;overflow:hidden">
+
+  <aside style="width:252px;flex:none;background:#0b3a37;display:flex;flex-direction:column;padding:22px 16px 16px">
+    <div style="display:flex;align-items:center;gap:12px;padding:2px 8px 22px">
+      <div style="width:34px;height:34px;flex:none;background:#2dd4bf;transform:rotate(45deg);border-radius:7px"></div>
+      <div style="line-height:1.1">
+        <div style="color:#fff;font-weight:700;font-size:19px;letter-spacing:.06em">DOA</div>
+        <div style="color:rgba(255,255,255,.5);font-size:10.5px;letter-spacing:.04em">Asset Disposal Authority</div>
+      </div>
+    </div>
+    <nav style="display:flex;flex-direction:column;gap:4px;flex:1">
+      <div style="color:rgba(255,255,255,.34);font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;padding:8px 16px 6px">Menu</div>
+      <button onClick="{{ goDashboard }}" style="{{ nav.dashStyle }}" style-hover="background:rgba(255,255,255,.07)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Dashboard</button>
+      <sc-if value="{{ nav.showNew }}" hint-placeholder-val="{{ false }}"><button onClick="{{ goNew }}" style="{{ nav.newStyle }}" style-hover="background:rgba(255,255,255,.07)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>New Request</button></sc-if>
+      <sc-if value="{{ nav.showMy }}" hint-placeholder-val="{{ false }}"><button onClick="{{ goMy }}" style="{{ nav.myStyle }}" style-hover="background:rgba(255,255,255,.07)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><line x1="8" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="8" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>My Requests</button></sc-if>
+      <sc-if value="{{ nav.showInbox }}" hint-placeholder-val="{{ false }}"><button onClick="{{ goInbox }}" style="{{ nav.inboxStyle }}" style-hover="background:rgba(255,255,255,.07)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 13l3 0 2 3 6 0 2 -3 3 0"/><path d="M4 13l2-8h12l2 8v6H4z"/></svg>Approval Inbox<span style="{{ nav.inboxBadge }}">{{ stats.pending }}</span></button></sc-if>
+      <sc-if value="{{ nav.showAll }}" hint-placeholder-val="{{ false }}"><button onClick="{{ goAll }}" style="{{ nav.allStyle }}" style-hover="background:rgba(255,255,255,.07)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="4" width="16" height="5" rx="1.5"/><rect x="4" y="11" width="16" height="5" rx="1.5"/><rect x="4" y="18" width="16" height="3" rx="1.5"/></svg>All Requests</button></sc-if>
+      <sc-if value="{{ nav.showMapping }}" hint-placeholder-val="{{ false }}"><button onClick="{{ goMapping }}" style="{{ nav.mapStyle }}" style-hover="background:rgba(255,255,255,.07)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="12" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8 7l8 4M8 17l8-4"/></svg>Routing & Mapping</button></sc-if>
+      <sc-if value="{{ nav.showAudit }}" hint-placeholder-val="{{ false }}"><button onClick="{{ goAudit }}" style="{{ nav.auditStyle }}" style-hover="background:rgba(255,255,255,.07)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 3h8l4 4v14H4V3z"/><path d="M8 3v4H4"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>Audit Log</button></sc-if>
+      <sc-if value="{{ nav.showUsers }}" hint-placeholder-val="{{ false }}"><button onClick="{{ goUsers }}" style="{{ nav.usersStyle }}" style-hover="background:rgba(255,255,255,.07)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3.6 2.9-6 5.5-6s5.5 2.4 5.5 6"/><circle cx="18" cy="9" r="2.4"/><path d="M15.2 14.2c2.1.3 4.3 2 4.3 5.8"/></svg>User Management</button></sc-if>
+      <div style="color:rgba(255,255,255,.34);font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;padding:14px 16px 6px">Support</div>
+      <button onClick="{{ goHelp }}" style="{{ nav.helpStyle }}" style-hover="background:rgba(255,255,255,.07)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.8 1c0 1.5-2.3 1.6-2.3 3.3"/><line x1="12" y1="17" x2="12" y2="17.1"/></svg>How to Use</button>
+    </nav>
+    <div style="border-top:1px solid rgba(255,255,255,.1);padding:14px 12px 4px;display:flex;align-items:center;gap:10px">
+      <div style="width:32px;height:32px;flex:none;border-radius:50%;background:#124f4a;color:#7fe9d8;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px">{{ avatarInitials }}</div>
+      <div style="line-height:1.25;overflow:hidden">
+        <div style="color:#fff;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ currentUserName }}</div>
+        <div style="color:rgba(255,255,255,.45);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ currentUserTitle }}</div>
+      </div>
+    </div>
+  </aside>
+
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <header style="flex:none;background:#fff;border-bottom:1px solid #e3e8e6;padding:0 28px;height:70px;display:flex;align-items:center;justify-content:space-between;gap:16px">
+      <div style="min-width:0">
+        <div style="font-size:19px;font-weight:700;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ screenTitle }}</div>
+        <div style="font-size:12.5px;color:#5c6a67;margin-top:1px">{{ screenSub }}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex:none">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:#8a968f;font-weight:500">Viewing as</span>
+          <div style="display:flex;background:#eef1f0;border-radius:9px;padding:3px">
+            <button onClick="{{ setRoleRequestor }}" style="{{ roleReqStyle }}">Requestor</button>
+            <button onClick="{{ setRoleApprover }}" style="{{ roleAppStyle }}">Approver</button>
+            <button onClick="{{ setRoleAdmin }}" style="{{ roleAdmStyle }}">Admin</button>
+          </div>
+        </div>
+        <div style="position:relative">
+          <button onClick="{{ toggleNotif }}" style="width:38px;height:38px;border-radius:10px;border:1px solid #e3e8e6;background:#fff;color:#3d4a47;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative" style-hover="background:#f8faf9">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="{{ notif.bellStyle }}"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+            <sc-if value="{{ notif.hasUnread }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;padding:0 4px;border-radius:99px;background:#b91c1c;color:#fff;font-size:9.5px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono';border:2px solid #fff;animation:badgePop .3s cubic-bezier(.3,1.5,.4,1)">{{ notif.unreadCount }}</span></sc-if>
+          </button>
+          <sc-if value="{{ notif.open }}" hint-placeholder-val="{{ false }}">
+          <div style="position:fixed;inset:0;z-index:55" onClick="{{ closeNotif }}"></div>
+          <div style="position:absolute;top:48px;right:0;width:380px;max-height:480px;background:#fff;border:1px solid #e3e8e6;border-radius:14px;box-shadow:0 16px 44px rgba(10,30,26,.18);z-index:56;display:flex;flex-direction:column;overflow:hidden;animation:popIn .18s ease">
+            <div style="padding:14px 18px;border-bottom:1px solid #e3e8e6;display:flex;align-items:center;justify-content:space-between">
+              <span style="font-weight:600;font-size:13.5px">Notifications</span>
+              <sc-if value="{{ notif.hasUnread }}" hint-placeholder-val="{{ false }}"><button onClick="{{ markAllRead }}" style="background:none;border:none;color:#0f766e;font-size:11.5px;font-weight:600;cursor:pointer;padding:0">Mark all as read</button></sc-if>
+            </div>
+            <div style="overflow:auto;flex:1">
+              <sc-for list="{{ notif.items }}" as="n" hint-placeholder-count="3">
+                <div onClick="{{ n.open }}" style="display:flex;gap:11px;padding:13px 18px;border-bottom:1px solid #f0f3f2;cursor:pointer;background:{{ n.bg }}" style-hover="background:#f8faf9">
+                  <div style="{{ n.iconWrap }}">{{ n.iconGlyph }}</div>
+                  <div style="min-width:0;flex:1">
+                    <div style="font-size:12.5px;font-weight:600;color:#10201d">{{ n.title }}</div>
+                    <div style="font-size:12px;color:#5c6a67;margin-top:2px;line-height:1.4">{{ n.body }}</div>
+                    <div style="font-size:10.5px;color:#96a19d;margin-top:5px;font-family:'IBM Plex Mono'">{{ n.id }} · {{ n.time }}</div>
+                  </div>
+                  <sc-if value="{{ n.unread }}" hint-placeholder-val="{{ false }}"><div style="width:7px;height:7px;border-radius:50%;background:#0f766e;flex:none;margin-top:5px"></div></sc-if>
+                </div>
+              </sc-for>
+              <sc-if value="{{ notif.empty }}" hint-placeholder-val="{{ false }}"><div style="padding:40px 20px;text-align:center;color:#96a19d;font-size:12.5px">You're all caught up — no notifications.</div></sc-if>
+            </div>
+          </div>
+          </sc-if>
+        </div>
+      </div>
+    </header>
+
+    <main style="flex:1;overflow:auto;padding:28px">
+
+      <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ true }}">
+      <div style="max-width:1180px;margin:0 auto;animation:fadeUp .4s ease">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px">
+          <div style="background:#fff;border:1px solid #e3e8e6;border-radius:14px;padding:18px 20px"><div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#8a968f">Pending approvals</div><div style="font-family:'IBM Plex Mono';font-size:30px;font-weight:600;margin-top:8px;color:#0f766e">{{ stats.pending }}</div><div style="font-size:11.5px;color:#8a968f;margin-top:2px">awaiting a signature</div></div>
+          <div style="background:#fff;border:1px solid #e3e8e6;border-radius:14px;padding:18px 20px"><div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#8a968f">Open requests</div><div style="font-family:'IBM Plex Mono';font-size:30px;font-weight:600;margin-top:8px">{{ stats.myOpen }}</div><div style="font-size:11.5px;color:#8a968f;margin-top:2px">in the approval flow</div></div>
+          <div style="background:#fff;border:1px solid #e3e8e6;border-radius:14px;padding:18px 20px"><div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#8a968f">Completed</div><div style="font-family:'IBM Plex Mono';font-size:30px;font-weight:600;margin-top:8px;color:#15803d">{{ stats.completed }}</div><div style="font-size:11.5px;color:#8a968f;margin-top:2px">fully authorized</div></div>
+          <div style="background:#fff;border:1px solid #e3e8e6;border-radius:14px;padding:18px 20px"><div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#8a968f">NGA in review</div><div style="font-family:'IBM Plex Mono';font-size:26px;font-weight:600;margin-top:9px">{{ stats.totalFmt }}</div><div style="font-size:11.5px;color:#8a968f;margin-top:2px">net gain, active requests</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1.35fr 1fr;gap:16px">
+          <div style="background:#fff;border:1px solid #e3e8e6;border-radius:14px;padding:20px 22px">
+            <div style="font-weight:600;font-size:14.5px;margin-bottom:16px">Requests by stage</div>
+            <sc-for list="{{ buckets }}" as="b" hint-placeholder-count="7">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:13px">
+                <div style="width:118px;flex:none;font-size:12.5px;color:#3d4a47">{{ b.label }}</div>
+                <div style="flex:1;height:8px;background:#eef1f0;border-radius:99px;overflow:hidden"><div style="{{ b.barStyle }}"></div></div>
+                <div style="width:26px;flex:none;text-align:right;font-family:'IBM Plex Mono';font-size:13px;font-weight:600;color:#3d4a47">{{ b.n }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background:#fff;border:1px solid #e3e8e6;border-radius:14px;padding:20px 22px">
+            <div style="font-weight:600;font-size:14.5px;margin-bottom:14px">Recent activity</div>
+            <sc-for list="{{ activity }}" as="a" hint-placeholder-count="5">
+              <div style="display:flex;gap:11px;padding:9px 0;border-bottom:1px solid #f0f3f2">
+                <div style="margin-top:5px;flex:none;{{ a.dotStyle }}"></div>
+                <div style="min-width:0;flex:1">
+                  <div style="font-family:'IBM Plex Mono';font-size:12px;font-weight:600">{{ a.id }}</div>
+                  <div style="font-size:12px;color:#5c6a67;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a.name }}</div>
+                  <div style="font-size:11px;color:#96a19d;margin-top:1px">{{ a.stepName }} · {{ a.date }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isNew }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:880px;margin:0 auto;animation:fadeUp .4s ease">
+        <div style="background:#fff;border:1px solid #e3e8e6;border-radius:14px;padding:26px 28px">
+          <div style="font-weight:600;font-size:15px;margin-bottom:4px">Asset details</div>
+          <div style="font-size:12.5px;color:#8a968f;margin-bottom:20px">Provide the disposal details. The system routes the first approval automatically based on NGA and format.</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 18px">
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600;color:#3d4a47">Asset code</span><input value="{{ form.asset }}" onChange="{{ fAsset }}" placeholder="AST-000000" style="padding:10px 12px;border:1px solid #d7dedb;border-radius:9px;font-family:'IBM Plex Mono';font-size:13px"/></label>
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600;color:#3d4a47">Format</span><select value="{{ form.format }}" onChange="{{ fFormat }}" style="padding:10px 12px;border:1px solid #d7dedb;border-radius:9px;font-size:13px;background:#fff"><sc-for list="{{ formats }}" as="f" hint-placeholder-count="6"><option value="{{ f }}">{{ f }}</option></sc-for></select></label>
+            <label style="display:flex;flex-direction:column;gap:6px;grid-column:1 / -1"><span style="font-size:12px;font-weight:600;color:#3d4a47">Asset name / description</span><input value="{{ form.name }}" onChange="{{ fName }}" placeholder="e.g. Delivery Truck — Isuzu NPR 150" style="padding:10px 12px;border:1px solid #d7dedb;border-radius:9px;font-size:13px"/></label>
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600;color:#3d4a47">NGA — Net Gain Amount (THB)</span><input value="{{ form.nga }}" onChange="{{ fNga }}" type="number" placeholder="0" style="padding:10px 12px;border:1px solid #d7dedb;border-radius:9px;font-family:'IBM Plex Mono';font-size:13px"/></label>
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600;color:#3d4a47">Sale price (THB)</span><input value="{{ form.price }}" onChange="{{ fPrice }}" type="number" placeholder="0" style="padding:10px 12px;border:1px solid #d7dedb;border-radius:9px;font-family:'IBM Plex Mono';font-size:13px"/></label>
+            <label style="display:flex;flex-direction:column;gap:6px;grid-column:1 / -1"><span style="font-size:12px;font-weight:600;color:#3d4a47">Buyer</span><input value="{{ form.buyer }}" onChange="{{ fBuyer }}" placeholder="Buyer company / individual" style="padding:10px 12px;border:1px solid #d7dedb;border-radius:9px;font-size:13px"/></label>
+            <label style="display:flex;flex-direction:column;gap:6px;grid-column:1 / -1"><span style="font-size:12px;font-weight:600;color:#3d4a47">Reason for sale</span><textarea value="{{ form.reason }}" onChange="{{ fReason }}" rows="3" placeholder="Business justification for disposing of the asset" style="padding:10px 12px;border:1px solid #d7dedb;border-radius:9px;font-size:13px;resize:vertical"></textarea></label>
+            <div style="grid-column:1 / -1;border:1.5px dashed #cdd6d3;border-radius:11px;padding:20px;text-align:center;color:#8a968f;background:#f8faf9">
+              <div style="font-size:13px;font-weight:500;color:#5c6a67">Drop supporting documents here</div>
+              <div style="font-family:'IBM Plex Mono';font-size:11px;margin-top:4px">appraisal · photos · sale agreement (PDF, JPG)</div>
+            </div>
+          </div>
+        </div>
+        <sc-if value="{{ showRoutingPreview }}" hint-placeholder-val="{{ true }}">
+        <div style="background:#f0faf8;border:1px solid #bfe9e2;border-radius:14px;padding:18px 22px;margin-top:16px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><div style="width:8px;height:8px;border-radius:50%;background:#0f766e"></div><span style="font-size:12.5px;font-weight:600;color:#0b5e57">Approval routing preview</span></div>
+          <div style="font-size:13px;color:#245852;line-height:1.55">First approval for NGA <strong style="font-family:'IBM Plex Mono'">{{ route.ngaFmt }}</strong> routes to <strong>{{ route.who }}</strong> <span style="color:#5c8a83">({{ route.tier }})</span>, then flows to Loss Prevention → Controller → Accounting (Fixed Asset) → CFO.</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px">
+            <span style="padding:5px 11px;border-radius:99px;background:#0f766e;color:#fff;font-size:11px;font-weight:600">1 · First Approval</span>
+            <span style="padding:5px 11px;border-radius:99px;background:#fff;border:1px solid #bfe9e2;color:#0b5e57;font-size:11px;font-weight:500">2 · Loss Prevention</span>
+            <span style="padding:5px 11px;border-radius:99px;background:#fff;border:1px solid #bfe9e2;color:#0b5e57;font-size:11px;font-weight:500">3 · Controller</span>
+            <span style="padding:5px 11px;border-radius:99px;background:#fff;border:1px solid #bfe9e2;color:#0b5e57;font-size:11px;font-weight:500">4 · Accounting</span>
+            <span style="padding:5px 11px;border-radius:99px;background:#fff;border:1px solid #bfe9e2;color:#0b5e57;font-size:11px;font-weight:500">5 · CFO</span>
+          </div>
+        </div>
+        </sc-if>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
+          <button onClick="{{ goMy }}" style="padding:11px 20px;border-radius:9px;border:1px solid #d7dedb;background:#fff;color:#3d4a47;font-weight:600;font-size:13px;cursor:pointer;transition:transform .12s" style-active="transform:scale(.96)">Cancel</button>
+          <button onClick="{{ submitForm }}" style="padding:11px 22px;border-radius:9px;border:none;background:#0f766e;color:#fff;font-weight:600;font-size:13px;cursor:pointer;transition:transform .12s,box-shadow .12s" style-hover="box-shadow:0 6px 16px rgba(15,118,110,.3)" style-active="transform:scale(.96)">Submit request</button>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isListScreen }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:1180px;margin:0 auto;animation:fadeUp .4s ease">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div style="font-size:13px;color:#5c6a67"><strong style="color:#10201d;font-family:'IBM Plex Mono'">{{ listCount }}</strong> {{ listCountLabel }}</div>
+          <input placeholder="Search by ID, asset, buyer…" style="padding:9px 13px;border:1px solid #d7dedb;border-radius:9px;font-size:12.5px;width:260px"/>
+        </div>
+        <div style="background:#fff;border:1px solid #e3e8e6;border-radius:14px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:1.6fr 1fr 1.1fr 1.3fr 40px;gap:14px;padding:12px 20px;background:#f8faf9;border-bottom:1px solid #e3e8e6;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#8a968f">
+            <div>Request</div><div>Format · NGA</div><div>Status</div><div>Progress</div><div></div>
+          </div>
+          <sc-for list="{{ listItems }}" as="r" hint-placeholder-count="4">
+            <div onClick="{{ r.open }}" style="{{ r.rowStyle }}" style-hover="background:#f8faf9;transform:translateX(2px)">
+              <div style="min-width:0"><div style="font-family:'IBM Plex Mono';font-size:12px;font-weight:600;color:#0f766e">{{ r.id }}</div><div style="font-size:13.5px;font-weight:500;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</div></div>
+              <div><div style="display:inline-block;padding:2px 9px;border-radius:6px;background:#eef1f0;font-size:11px;font-weight:600;color:#3d4a47">{{ r.format }}</div><div style="font-family:'IBM Plex Mono';font-size:12.5px;margin-top:5px;color:#3d4a47">{{ r.ngaFmt }}</div></div>
+              <div><span style="{{ r.badgeStyle }}"><span style="{{ r.dotSmall }}"></span>{{ r.statusLabel }}</span></div>
+              <div><div style="height:6px;background:#eef1f0;border-radius:99px;overflow:hidden;max-width:150px"><div style="{{ r.pctStyle }}"></div></div><div style="font-size:11px;color:#8a968f;margin-top:5px">{{ r.stepName }}</div></div>
+              <div style="text-align:right;color:#b6c0bc"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 6 15 12 9 18"/></svg></div>
+            </div>
+          </sc-for>
+          <sc-if value="{{ listEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:48px;text-align:center;color:#96a19d;font-size:13.5px">{{ listEmptyText }}</div></sc-if>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:1080px;margin:0 auto;animation:fadeUp .4s ease">
+        <button onClick="{{ detailBack }}" style="display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:#5c6a67;font-size:13px;font-weight:500;cursor:pointer;padding:0;margin-bottom:16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 6 9 12 15 18"/></svg>Back</button>
+        <div style="background:#fff;border:1px solid #e3e8e6;border-radius:14px;padding:24px 26px;margin-bottom:16px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+            <div><div style="font-family:'IBM Plex Mono';font-size:13px;font-weight:600;color:#0f766e">{{ detail.id }}</div><div style="font-size:20px;font-weight:700;margin-top:3px">{{ detail.name }}</div></div>
+            <span style="{{ detail.badgeStyle }}"><span style="{{ detail.dotSmall }}"></span>{{ detail.statusLabel }}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px 20px;margin-top:22px">
+            <div><div style="font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#8a968f">Asset code</div><div style="font-family:'IBM Plex Mono';font-size:13.5px;margin-top:4px">{{ detail.asset }}</div></div>
+            <div><div style="font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#8a968f">Format</div><div style="font-size:13.5px;margin-top:4px">{{ detail.format }}</div></div>
+            <div><div style="font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#8a968f">NGA</div><div style="font-family:'IBM Plex Mono';font-size:13.5px;margin-top:4px;font-weight:600">{{ detail.ngaFmt }}</div></div>
+            <div><div style="font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#8a968f">Sale price</div><div style="font-family:'IBM Plex Mono';font-size:13.5px;margin-top:4px">{{ detail.priceFmt }}</div></div>
+            <div><div style="font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#8a968f">Buyer</div><div style="font-size:13.5px;margin-top:4px">{{ detail.buyer }}</div></div>
+            <div><div style="font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#8a968f">Requestor</div><div style="font-size:13.5px;margin-top:4px">{{ detail.requestor }}</div></div>
+            <div><div style="font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#8a968f">Submitted</div><div style="font-size:13.5px;margin-top:4px">{{ detail.date }}</div></div>
+          </div>
+          <div style="margin-top:16px;padding-top:16px;border-top:1px solid #f0f3f2"><div style="font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#8a968f">Reason for sale</div><div style="font-size:13.5px;margin-top:5px;color:#3d4a47;line-height:1.5">{{ detail.reason }}</div></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:16px;align-items:start">
+          <div style="background:#fff;border:1px solid #e3e8e6;border-radius:14px;padding:24px 26px">
+            <div style="font-weight:600;font-size:14.5px;margin-bottom:20px">Approval timeline</div>
+            <sc-for list="{{ detail.steps }}" as="step" hint-placeholder-count="6">
+              <div style="display:flex;gap:16px">
+                <div style="display:flex;flex-direction:column;align-items:center;flex:none;padding-top:2px"><div style="{{ step.dotStyle }}"></div><div style="{{ step.lineStyle }}"></div></div>
+                <div style="padding-bottom:22px;flex:1;min-width:0">
+                  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:13.5px;font-weight:600">{{ step.title }}</span><span style="padding:2px 8px;border-radius:6px;font-size:10.5px;font-weight:600;color:{{ step.badgeC }};background:{{ step.badgeBg }}">{{ step.statusLabel }}</span></div>
+                  <div style="font-size:12.5px;color:#3d4a47;margin-top:4px">{{ step.who }}</div>
+                  <div style="font-size:11.5px;color:#96a19d;margin-top:2px">{{ step.role }}<span>{{ step.dateSep }}</span>{{ step.date }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div>
+            <sc-if value="{{ detail.canAct }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#fff;border:1px solid #e3e8e6;border-radius:14px;padding:22px 24px">
+              <div style="font-weight:600;font-size:14.5px">Your decision</div>
+              <div style="font-size:12.5px;color:#8a968f;margin-top:4px;margin-bottom:16px">Step {{ detail.actStep }}: {{ detail.actTitle }} — {{ detail.actWho }}</div>
+              <textarea rows="3" placeholder="Add a comment (optional)" style="width:100%;padding:10px 12px;border:1px solid #d7dedb;border-radius:9px;font-size:12.5px;resize:vertical;margin-bottom:14px"></textarea>
+              <button onClick="{{ approveCurrent }}" style="width:100%;padding:12px;border-radius:9px;border:none;background:#0f766e;color:#fff;font-weight:600;font-size:13.5px;cursor:pointer;margin-bottom:9px;transition:transform .12s,box-shadow .12s" style-hover="box-shadow:0 6px 16px rgba(15,118,110,.3)" style-active="transform:scale(.96)">Approve & forward</button>
+              <button onClick="{{ rejectCurrent }}" style="width:100%;padding:12px;border-radius:9px;border:1px solid #f0c2c2;background:#fff;color:#b91c1c;font-weight:600;font-size:13.5px;cursor:pointer;transition:transform .12s" style-hover="background:#fef2f2" style-active="transform:scale(.96)">Reject</button>
+            </div>
+            </sc-if>
+            <sc-if value="{{ detail.isDone }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:22px 24px">
+              <div style="display:flex;align-items:center;gap:9px;font-weight:600;font-size:14.5px;color:#15803d"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><polyline points="8 12 11 15 16 9"/></svg>Fully authorized</div>
+              <div style="font-size:12.5px;color:#3d6b4a;margin-top:8px;line-height:1.5">All six stages complete. The asset sale is approved and the request is closed.</div>
+            </div>
+            </sc-if>
+            <sc-if value="{{ detail.isRejected }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:14px;padding:22px 24px">
+              <div style="display:flex;align-items:center;gap:9px;font-weight:600;font-size:14.5px;color:#b91c1c"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>Request rejected</div>
+              <div style="font-size:12.5px;color:#8a3d3d;margin-top:8px;line-height:1.5">{{ detail.stepName }}. The requestor must revise and resubmit.</div>
+            </div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isUsers }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:1080px;margin:0 auto;animation:fadeUp .4s ease">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div style="font-size:13px;color:#5c6a67"><strong style="color:#10201d;font-family:'IBM Plex Mono'">{{ userList.length }}</strong> users</div>
+          <button onClick="{{ openAddUser }}" style="padding:10px 18px;border-radius:9px;border:none;background:#0f766e;color:#fff;font-weight:600;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:7px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Add user</button>
+        </div>
+        <div style="background:#fff;border:1px solid #e3e8e6;border-radius:14px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:1.3fr 1.4fr 1.1fr 100px;gap:14px;padding:12px 20px;background:#f8faf9;border-bottom:1px solid #e3e8e6;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#8a968f">
+            <div>Name</div><div>Email</div><div>Role</div><div></div>
+          </div>
+          <sc-for list="{{ userList }}" as="usr" hint-placeholder-count="6">
+            <div style="display:grid;grid-template-columns:1.3fr 1.4fr 1.1fr 100px;gap:14px;padding:13px 20px;border-bottom:1px solid #f0f3f2;align-items:center">
+              <div style="display:flex;align-items:center;gap:10px;min-width:0">
+                <div style="width:30px;height:30px;flex:none;border-radius:50%;background:#e6f4f2;color:#0f766e;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11.5px">{{ usr.initials }}</div>
+                <span style="font-size:13.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ usr.name }}</span>
+              </div>
+              <div style="font-family:'IBM Plex Mono';font-size:12.5px;color:#3d4a47;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ usr.email }}</div>
+              <div><span style="display:inline-block;padding:3px 10px;border-radius:99px;background:#eef1f0;font-size:11px;font-weight:600;color:#3d4a47">{{ usr.roleLabel }}</span></div>
+              <div style="display:flex;gap:6px;justify-content:flex-end">
+                <button onClick="{{ usr.edit }}" title="Edit" style="width:30px;height:30px;border-radius:8px;border:1px solid #e3e8e6;background:#fff;color:#5c6a67;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#f8faf9"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+                <button onClick="{{ usr.remove }}" title="Delete" style="width:30px;height:30px;border-radius:8px;border:1px solid #f0c2c2;background:#fff;color:#b91c1c;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#fef2f2"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4h8v2"/></svg></button>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <sc-if value="{{ userModal }}" hint-placeholder-val="{{ false }}">
+      <div style="position:fixed;inset:0;background:rgba(10,25,22,.45);display:flex;align-items:center;justify-content:center;z-index:60" onClick="{{ closeUserModal }}">
+        <div onClick="{{ stopProp }}" style="background:#fff;border-radius:15px;width:440px;max-width:92vw;padding:26px 28px;box-shadow:0 20px 60px rgba(0,0,0,.28);animation:popIn .22s cubic-bezier(.2,.9,.3,1.3)">
+          <div style="font-weight:700;font-size:16px;margin-bottom:2px">{{ userModal.title }}</div>
+          <div style="font-size:12.5px;color:#8a968f;margin-bottom:20px">{{ userModal.sub }}</div>
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600;color:#3d4a47">Full name</span><input value="{{ userModal.name }}" onChange="{{ umName }}" placeholder="e.g. Suda Panyawong" style="padding:10px 12px;border:1px solid #d7dedb;border-radius:9px;font-size:13px"/></label>
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600;color:#3d4a47">Email</span><input value="{{ userModal.email }}" onChange="{{ umEmail }}" placeholder="name@company.com" style="padding:10px 12px;border:1px solid #d7dedb;border-radius:9px;font-family:'IBM Plex Mono';font-size:12.5px"/></label>
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600;color:#3d4a47">Role</span><select value="{{ userModal.role }}" onChange="{{ umRole }}" style="padding:10px 12px;border:1px solid #d7dedb;border-radius:9px;font-size:13px;background:#fff"><sc-for list="{{ roleOptions }}" as="ro" hint-placeholder-count="6"><option value="{{ ro.v }}">{{ ro.l }}</option></sc-for></select></label>
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600;color:#3d4a47">{{ userModal.pwLabel }}</span><input value="{{ userModal.password }}" onChange="{{ umPassword }}" type="text" placeholder="{{ userModal.pwPlaceholder }}" style="padding:10px 12px;border:1px solid #d7dedb;border-radius:9px;font-family:'IBM Plex Mono';font-size:12.5px"/></label>
+          </div>
+          <sc-if value="{{ userModal.error }}" hint-placeholder-val="{{ false }}"><div style="margin-top:12px;padding:9px 12px;border-radius:8px;background:#fef2f2;color:#b91c1c;font-size:12px">{{ userModal.error }}</div></sc-if>
+          <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:22px">
+            <button onClick="{{ closeUserModal }}" style="padding:10px 18px;border-radius:9px;border:1px solid #d7dedb;background:#fff;color:#3d4a47;font-weight:600;font-size:13px;cursor:pointer">Cancel</button>
+            <button onClick="{{ saveUserModal }}" style="padding:10px 20px;border-radius:9px;border:none;background:#0f766e;color:#fff;font-weight:600;font-size:13px;cursor:pointer">{{ userModal.saveLabel }}</button>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+      </sc-if>
+
+      <sc-if value="{{ isHelp }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:960px;margin:0 auto;animation:fadeUp .4s ease">
+        <div style="background:linear-gradient(135deg,#0b3a37,#0f766e);border-radius:16px;padding:28px 30px;color:#fff;margin-bottom:20px">
+          <div style="font-size:20px;font-weight:700">Getting started with DOA</div>
+          <div style="font-size:13.5px;color:rgba(255,255,255,.78);margin-top:6px;max-width:560px;line-height:1.55">Quick guide to opening, routing, and approving asset-sale requests. Switch the "Viewing as" toggle above to try each role.</div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e3e8e6;border-radius:14px;padding:24px 26px;margin-bottom:16px">
+          <div style="font-weight:600;font-size:14.5px;margin-bottom:16px">The 6-stage approval flow</div>
+          <div style="display:flex;flex-wrap:wrap;gap:0">
+            <sc-for list="{{ helpFlow }}" as="hf" hint-placeholder-count="6">
+              <div style="display:flex;align-items:center">
+                <div style="min-width:132px;border:1px solid #e3e8e6;border-radius:11px;padding:13px 14px">
+                  <div style="width:22px;height:22px;border-radius:6px;background:#ccfbf1;color:#0f766e;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono'">{{ hf.n }}</div>
+                  <div style="font-size:12.5px;font-weight:600;margin-top:8px">{{ hf.title }}</div>
+                  <div style="font-size:11px;color:#8a968f;margin-top:2px">{{ hf.who }}</div>
+                </div>
+                <sc-if value="{{ hf.hasArrow }}" hint-placeholder-val="{{ true }}"><div style="padding:0 4px;color:#c2ccc9;font-size:16px">→</div></sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px">
+          <div style="background:#fff;border:1px solid #e3e8e6;border-radius:14px;padding:20px 22px">
+            <div style="width:34px;height:34px;border-radius:9px;background:#ccfbf1;color:#0f766e;display:flex;align-items:center;justify-content:center;margin-bottom:12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+            <div style="font-weight:600;font-size:13.5px;margin-bottom:8px">As a Requestor</div>
+            <sc-for list="{{ helpRequestor }}" as="st" hint-placeholder-count="4"><div style="display:flex;gap:8px;font-size:12px;color:#3d4a47;margin-bottom:7px;line-height:1.5"><span style="color:#0f766e;font-weight:700">{{ st.n }}.</span>{{ st.text }}</div></sc-for>
+          </div>
+          <div style="background:#fff;border:1px solid #e3e8e6;border-radius:14px;padding:20px 22px">
+            <div style="width:34px;height:34px;border-radius:9px;background:#ccfbf1;color:#0f766e;display:flex;align-items:center;justify-content:center;margin-bottom:12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 13l3 0 2 3 6 0 2 -3 3 0"/><path d="M4 13l2-8h12l2 8v6H4z"/></svg></div>
+            <div style="font-weight:600;font-size:13.5px;margin-bottom:8px">As an Approver</div>
+            <sc-for list="{{ helpApprover }}" as="st" hint-placeholder-count="4"><div style="display:flex;gap:8px;font-size:12px;color:#3d4a47;margin-bottom:7px;line-height:1.5"><span style="color:#0f766e;font-weight:700">{{ st.n }}.</span>{{ st.text }}</div></sc-for>
+          </div>
+          <div style="background:#fff;border:1px solid #e3e8e6;border-radius:14px;padding:20px 22px">
+            <div style="width:34px;height:34px;border-radius:9px;background:#ccfbf1;color:#0f766e;display:flex;align-items:center;justify-content:center;margin-bottom:12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="12" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8 7l8 4M8 17l8-4"/></svg></div>
+            <div style="font-weight:600;font-size:13.5px;margin-bottom:8px">As an Admin</div>
+            <sc-for list="{{ helpAdmin }}" as="st" hint-placeholder-count="4"><div style="display:flex;gap:8px;font-size:12px;color:#3d4a47;margin-bottom:7px;line-height:1.5"><span style="color:#0f766e;font-weight:700">{{ st.n }}.</span>{{ st.text }}</div></sc-for>
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e3e8e6;border-radius:14px;padding:22px 26px">
+          <div style="font-weight:600;font-size:14.5px;margin-bottom:14px">Frequently asked questions</div>
+          <sc-for list="{{ faqs }}" as="fq" hint-placeholder-count="4">
+            <div style="border-bottom:1px solid #f0f3f2;padding:12px 0">
+              <div onClick="{{ fq.toggle }}" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:12px">
+                <span style="font-size:13.5px;font-weight:600">{{ fq.q }}</span>
+                <span style="{{ fq.iconStyle }}">+</span>
+              </div>
+              <sc-if value="{{ fq.isOpen }}" hint-placeholder-val="{{ false }}"><div style="font-size:12.5px;color:#5c6a67;margin-top:8px;line-height:1.6">{{ fq.a }}</div></sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isAudit }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:1080px;margin:0 auto;animation:fadeUp .4s ease">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap">
+          <div style="font-size:13px;color:#5c6a67"><strong style="color:#10201d;font-family:'IBM Plex Mono'">{{ auditItems.length }}</strong> events</div>
+          <div style="display:flex;background:#eef1f0;border-radius:9px;padding:3px">
+            <sc-for list="{{ auditFilters }}" as="af" hint-placeholder-count="5"><button onClick="{{ af.select }}" style="{{ af.style }}">{{ af.label }}</button></sc-for>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid #e3e8e6;border-radius:14px;overflow:hidden">
+          <sc-for list="{{ auditItems }}" as="ev" hint-placeholder-count="8">
+            <div style="display:flex;gap:14px;padding:14px 20px;border-bottom:1px solid #f0f3f2;align-items:flex-start">
+              <div style="{{ ev.iconWrap }}">{{ ev.glyph }}</div>
+              <div style="min-width:0;flex:1">
+                <div style="font-size:13px;color:#10201d"><strong>{{ ev.actor }}</strong> {{ ev.verb }} <a href="#" onClick="{{ ev.open }}" style="font-family:'IBM Plex Mono';font-weight:600">{{ ev.reqId }}</a></div>
+                <div style="font-size:12px;color:#5c6a67;margin-top:2px">{{ ev.detail }}</div>
+              </div>
+              <div style="font-size:11px;color:#96a19d;white-space:nowrap;font-family:'IBM Plex Mono'">{{ ev.time }}</div>
+            </div>
+          </sc-for>
+          <sc-if value="{{ auditEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:48px;text-align:center;color:#96a19d;font-size:13.5px">No events match this filter.</div></sc-if>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isMapping }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:1080px;margin:0 auto;animation:fadeUp .4s ease">
+        <div style="background:#fff;border:1px solid #e3e8e6;border-radius:14px;padding:22px 26px;margin-bottom:16px">
+          <div style="font-weight:600;font-size:14.5px;margin-bottom:4px">NGA thresholds — first approval</div>
+          <div style="font-size:12.5px;color:#8a968f;margin-bottom:18px">The Net Gain Amount decides which authorizer signs the first stage.</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+            <div style="border:1px solid #e3e8e6;border-radius:11px;padding:16px"><div style="font-family:'IBM Plex Mono';font-size:14px;font-weight:600;color:#0f766e">&lt; ฿100K</div><div style="font-size:12.5px;color:#3d4a47;margin-top:8px">Authorizer A</div><div style="font-size:12px;color:#8a968f">{{ aName }}</div></div>
+            <div style="border:1px solid #e3e8e6;border-radius:11px;padding:16px"><div style="font-family:'IBM Plex Mono';font-size:14px;font-weight:600;color:#0f766e">&lt; ฿2M</div><div style="font-size:12.5px;color:#3d4a47;margin-top:8px">Authorizer B</div><div style="font-size:12px;color:#8a968f">{{ bName }}</div></div>
+            <div style="border:1px solid #e3e8e6;border-radius:11px;padding:16px"><div style="font-family:'IBM Plex Mono';font-size:14px;font-weight:600;color:#0f766e">&lt; ฿4M</div><div style="font-size:12.5px;color:#3d4a47;margin-top:8px">Authorizer C</div><div style="font-size:12px;color:#8a968f">{{ cName }}</div></div>
+            <div style="border:1px dashed #d7dedb;border-radius:11px;padding:16px;background:#f8faf9"><div style="font-family:'IBM Plex Mono';font-size:14px;font-weight:600;color:#8a968f">≥ ฿4M</div><div style="font-size:12.5px;color:#3d4a47;margin-top:8px">Board Committee</div><div style="font-size:12px;color:#8a968f">escalated</div></div>
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e3e8e6;border-radius:14px;overflow:hidden;margin-bottom:16px">
+          <div style="padding:18px 22px 4px"><div style="font-weight:600;font-size:14.5px">Format → authorizer binding</div><div style="font-size:12.5px;color:#8a968f;margin-top:3px;margin-bottom:12px">Each format binds to an authorizer per NGA tier. Defaults shown.</div></div>
+          <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr;gap:0;padding:0 22px 4px;font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#8a968f"><div>Format</div><div>Tier A (&lt;฿100K)</div><div>Tier B (&lt;฿2M)</div><div>Tier C (&lt;฿4M)</div></div>
+          <div style="max-height:340px;overflow:auto;border-top:1px solid #e3e8e6">
+          <sc-for list="{{ matrixRows }}" as="m" hint-placeholder-count="8">
+            <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr;gap:12px;padding:11px 22px;border-bottom:1px solid #f0f3f2;align-items:center">
+              <div style="font-size:13px;font-weight:600">{{ m.f }}</div>
+              <div style="padding:7px 10px;border:1px solid #e3e8e6;border-radius:8px;font-size:12px;color:#3d4a47;background:#f8faf9">{{ m.a }}</div>
+              <div style="padding:7px 10px;border:1px solid #e3e8e6;border-radius:8px;font-size:12px;color:#3d4a47;background:#f8faf9">{{ m.b }}</div>
+              <div style="padding:7px 10px;border:1px solid #e3e8e6;border-radius:8px;font-size:12px;color:#3d4a47;background:#f8faf9">{{ m.c }}</div>
+            </div>
+          </sc-for>
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e3e8e6;border-radius:14px;padding:22px 26px">
+          <div style="font-weight:600;font-size:14.5px;margin-bottom:4px">Fixed approval chain</div>
+          <div style="font-size:12.5px;color:#8a968f;margin-bottom:18px">After the first approval, every request follows this sequence.</div>
+          <div style="display:flex;align-items:stretch;gap:0;flex-wrap:wrap">
+            <div style="flex:1;min-width:150px;border:1px solid #e3e8e6;border-radius:11px;padding:15px 16px"><div style="font-size:10.5px;font-weight:600;color:#0f766e">STAGE 2</div><div style="font-size:13px;font-weight:600;margin-top:6px">Head of Loss Prevention</div><div style="font-size:12px;color:#8a968f;margin-top:2px">{{ lpName }}</div></div>
+            <div style="display:flex;align-items:center;padding:0 6px;color:#c2ccc9;font-size:18px">→</div>
+            <div style="flex:1;min-width:150px;border:1px solid #e3e8e6;border-radius:11px;padding:15px 16px"><div style="font-size:10.5px;font-weight:600;color:#0f766e">STAGE 3</div><div style="font-size:13px;font-weight:600;margin-top:6px">Head of Controller</div><div style="font-size:12px;color:#8a968f;margin-top:2px">{{ ctrlName }}</div></div>
+            <div style="display:flex;align-items:center;padding:0 6px;color:#c2ccc9;font-size:18px">→</div>
+            <div style="flex:1;min-width:150px;border:1px solid #e3e8e6;border-radius:11px;padding:15px 16px"><div style="font-size:10.5px;font-weight:600;color:#0f766e">STAGE 4</div><div style="font-size:13px;font-weight:600;margin-top:6px">Accounting — Fixed Asset</div><div style="font-size:12px;color:#8a968f;margin-top:2px">{{ accName }}</div></div>
+            <div style="display:flex;align-items:center;padding:0 6px;color:#c2ccc9;font-size:18px">→</div>
+            <div style="flex:1;min-width:150px;border:1px solid #0f766e;border-radius:11px;padding:15px 16px;background:#f0faf8"><div style="font-size:10.5px;font-weight:600;color:#0f766e">STAGE 5</div><div style="font-size:13px;font-weight:600;margin-top:6px">CFO</div><div style="font-size:12px;color:#8a968f;margin-top:2px">{{ cfoName }}</div></div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+    </main>
+  </div>
+
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0b3a37;color:#fff;padding:13px 20px;border-radius:11px;font-size:13px;font-weight:500;box-shadow:0 10px 30px rgba(0,0,0,.22);animation:toastIn .2s ease;display:flex;align-items:center;gap:10px;z-index:50"><span style="width:8px;height:8px;border-radius:50%;background:#2dd4bf"></span>{{ toast }}</div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:820},&quot;showRoutingPreview&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behavior&quot;},&quot;currencySymbol&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;฿&quot;,&quot;options&quot;:[&quot;฿&quot;,&quot;THB&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Display&quot;}}">
+class Component extends DCLogic {
+  users = {
+    req:{name:'Arthit Wongsa', title:'Dept. Head — Merchandising'},
+    A:{name:'Somchai Pinit', title:'Authorizer A'},
+    B:{name:'Naruk Thanawat', title:'Authorizer B'},
+    C:{name:'Wichai Sombat', title:'Authorizer C'},
+    lp:{name:'Ploy Rattana', title:'Head of Loss Prevention'},
+    ctrl:{name:'Anan Kittithorn', title:'Head of Controller'},
+    acc:{name:'Kanya Meesuk', title:'Head of Accounting (Fixed Asset)'},
+    cfo:{name:'Prasert Laohap', title:'Chief Financial Officer'},
+  };
+  formats = ['Hyper','Market','BCM','BFS','Foodplace','Depot','Pure','Wawee','AB HO','AB Surawong','AB IT','B2B','Donjai','TBD','CCD','Setup','MTN'];
+
+  state = {
+    role:'requestor', screen:'dashboard', selectedId:null, toast:null,
+    form:{asset:'', name:'', format:'Hyper', nga:'', price:'', buyer:'', reason:''},
+    requests: this.seed(),
+    accounts: this.seedUsers(),
+    userModal: null,
+    notifOpen: false,
+    readNotifIds: [],
+    openFaq: null,
+    auditFilter: 'all',
+  };
+
+  seedUsers(){
+    const u=this.users;
+    return [
+      {id:1, name:'Arthit Wongsa', email:'arthit.w@company.com', role:'requestor'},
+      {id:2, name:u.A.name, email:'somchai.p@company.com', role:'approver'},
+      {id:3, name:u.B.name, email:'naruk.t@company.com', role:'approver'},
+      {id:4, name:u.C.name, email:'wichai.s@company.com', role:'approver'},
+      {id:5, name:u.lp.name, email:'ploy.r@company.com', role:'approver'},
+      {id:6, name:u.ctrl.name, email:'anan.k@company.com', role:'approver'},
+      {id:7, name:u.acc.name, email:'kanya.m@company.com', role:'approver'},
+      {id:8, name:u.cfo.name, email:'prasert.l@company.com', role:'approver'},
+      {id:9, name:'System Admin', email:'admin@company.com', role:'admin'},
+    ];
+  }
+
+  seed(){
+    const u=this.users;
+    return [
+      {id:'DOA-2026-0155', asset:'AST-002210', name:'Vacant Land Plot — Rangsit (4 rai)', format:'Pure', nga:3600000, price:4200000, buyer:'Green Estate Development', reason:'Non-core asset divestment approved in FY26 portfolio review.', requestor:u.req.name, date:'19 Jul 2026', stage:5, rejectedAt:null, dates:['19 Jul','19 Jul','20 Jul','20 Jul','21 Jul','']},
+      {id:'DOA-2026-0151', asset:'AST-009087', name:'POS Terminals (batch of 12)', format:'Market', nga:320000, price:410000, buyer:'RetailTech Solutions', reason:'Store closure — Rama IV branch.', requestor:u.req.name, date:'18 Jul 2026', stage:1, rejectedAt:null, dates:['18 Jul','','','','','']},
+      {id:'DOA-2026-0148', asset:'AST-007731', name:'Reach Forklift — Toyota 8FBE', format:'BFS', nga:2900000, price:3250000, buyer:'Bangkok Logistics Partners', reason:'Warehouse downsizing after network consolidation.', requestor:u.req.name, date:'17 Jul 2026', stage:2, rejectedAt:null, dates:['17 Jul','17 Jul','','','','']},
+      {id:'DOA-2026-0142', asset:'AST-004512', name:'Delivery Truck — Isuzu NPR 150', format:'Depot', nga:1850000, price:2100000, buyer:'Somjai Trading Co., Ltd.', reason:'End of service life; replaced by newer fleet unit.', requestor:u.req.name, date:'15 Jul 2026', stage:3, rejectedAt:null, dates:['15 Jul','16 Jul','17 Jul','','','']},
+      {id:'DOA-2026-0139', asset:'AST-006654', name:'Store Fixtures & Shelving', format:'Hyper', nga:85000, price:120000, buyer:'SecondUse Furnishings', reason:'Store remodel — replaced with new fit-out.', requestor:u.req.name, date:'10 Jul 2026', stage:6, rejectedAt:null, dates:['10 Jul','11 Jul','12 Jul','12 Jul','13 Jul','14 Jul']},
+      {id:'DOA-2026-0130', asset:'AST-001120', name:'Espresso Machines (3 units)', format:'Wawee', nga:45000, price:60000, buyer:'CafeSupply Co.', reason:'Equipment upgrade to newer models.', requestor:u.req.name, date:'6 Jul 2026', stage:2, rejectedAt:2, dates:['6 Jul','7 Jul','','','','']},
+    ];
+  }
+
+  sym(){ return this.props.currencySymbol==='THB'; }
+  fmt(n){ if(n===''||n==null||isNaN(Number(n))) return '—'; const v=Number(n).toLocaleString('en-US'); return this.sym()? v+' THB' : '฿'+v; }
+
+  firstApprover(nga){
+    const u=this.users;
+    if(nga<100000) return {who:u.A.name, tier:'< ฿100K · Authorizer A'};
+    if(nga<2000000) return {who:u.B.name, tier:'< ฿2M · Authorizer B'};
+    if(nga<4000000) return {who:u.C.name, tier:'< ฿4M · Authorizer C'};
+    return {who:'Board Committee', tier:'≥ ฿4M · Board approval'};
+  }
+
+  buildSteps(r){
+    const u=this.users, fa=this.firstApprover(r.nga);
+    const defs=[
+      {title:'Request Submitted', role:'Requestor', who:r.requestor},
+      {title:'First Approval', role:fa.tier, who:fa.who},
+      {title:'Loss Prevention', role:'Head of Loss Prevention', who:u.lp.name},
+      {title:'Controller', role:'Head of Controller', who:u.ctrl.name},
+      {title:'Accounting — Fixed Asset', role:'Head of Accounting (Fixed Asset)', who:u.acc.name},
+      {title:'CFO', role:'Chief Financial Officer', who:u.cfo.name},
+    ];
+    const pal={
+      done:{dot:'#15803d',ring:'#dcfce7',label:'Approved',c:'#15803d',bg:'#dcfce7'},
+      current:{dot:'#0f766e',ring:'#ccfbf1',label:'Pending',c:'#0f766e',bg:'#ccfbf1'},
+      pending:{dot:'#c2ccc9',ring:'#eef1f0',label:'Waiting',c:'#6b7a76',bg:'#eef1f0'},
+      rejected:{dot:'#b91c1c',ring:'#fee2e2',label:'Rejected',c:'#b91c1c',bg:'#fee2e2'},
+    };
+    return defs.map((d,i)=>{
+      let st;
+      if(r.rejectedAt!=null) st = i<r.rejectedAt?'done':(i===r.rejectedAt?'rejected':'pending');
+      else st = i<r.stage?'done':(i===r.stage?'current':'pending');
+      const p=pal[st], isLast=i===defs.length-1;
+      const lineDone = r.rejectedAt!=null ? i<r.rejectedAt : i<r.stage;
+      return {...d, status:st, statusLabel:p.label, badgeC:p.c, badgeBg:p.bg,
+        date:r.dates[i]||'', dateSep:(r.dates[i]?' · ':''),
+        dotStyle:`width:14px;height:14px;border-radius:50%;background:${p.dot};box-shadow:0 0 0 4px ${p.ring};${st==='current'?'animation:ringPulse 1.8s ease infinite':''}`,
+        lineStyle:isLast?'display:none':`flex:1;width:2px;min-height:26px;background:${lineDone?'#86c9a3':'#e3e8e6'};margin:4px 0`,
+      };
+    });
+  }
+
+  decorate(r, idx){
+    const steps=this.buildSteps(r);
+    const titles=['Submitted','First Approval','Loss Prevention','Controller','Accounting','CFO'];
+    let statusLabel, sc, sbg, stepName;
+    if(r.rejectedAt!=null){ statusLabel='Rejected'; sc='#b91c1c'; sbg='#fee2e2'; stepName='Rejected at '+titles[r.rejectedAt]; }
+    else if(r.stage>=6){ statusLabel='Completed'; sc='#15803d'; sbg='#dcfce7'; stepName='Fully approved'; }
+    else { statusLabel='In Review'; sc='#0f766e'; sbg='#ccfbf1'; stepName='At '+titles[r.stage]; }
+    const done = r.rejectedAt!=null ? r.rejectedAt : Math.min(r.stage,6);
+    const pct = Math.round(done/6*100);
+    return {...r, steps, statusLabel, sc, sbg, stepName,
+      ngaFmt:this.fmt(r.nga), priceFmt:this.fmt(r.price),
+      pctStyle:`width:${pct}%;height:100%;background:${sc};border-radius:99px`,
+      badgeStyle:`display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;font-weight:600;font-size:11px;color:${sc};background:${sbg}`,
+      dotSmall:`width:6px;height:6px;border-radius:50%;background:${sc};flex:none`,
+      open:()=>this.setState({screen:'detail', selectedId:r.id}),
+      rowStyle:`display:grid;grid-template-columns:1.6fr 1fr 1.1fr 1.3fr 40px;gap:14px;padding:15px 20px;border-bottom:1px solid #f0f3f2;cursor:pointer;align-items:center;transition:background .15s,transform .15s;animation:fadeUp .35s ease ${(idx||0)*0.05}s both`,
+    };
+  }
+
+  flash=(m)=>{ this.setState({toast:m}); clearTimeout(this._t); this._t=setTimeout(()=>this.setState({toast:null}),2900); };
+  setRole=(r)=>()=>this.setState({role:r, screen:'dashboard', selectedId:null});
+  go=(s)=>()=>this.setState({screen:s, selectedId:null});
+  setForm=(k)=>(e)=>{ const v=e.target.value; this.setState(s=>({form:{...s.form,[k]:v}})); };
+
+  approveCurrent=()=>{ this.setState(s=>({requests:s.requests.map(r=> r.id===s.selectedId?{...r,stage:Math.min(r.stage+1,6)}:r)})); this.flash('Approved — request forwarded to the next approver.'); };
+  rejectCurrent=()=>{ this.setState(s=>({requests:s.requests.map(r=> r.id===s.selectedId?{...r,rejectedAt:r.stage}:r)})); this.flash('Request rejected.'); };
+  submitForm=()=>{ this.setState(s=>{ const f=s.form; const nr={id:'DOA-2026-0'+(160+s.requests.length), asset:f.asset||'AST-NEW', name:f.name||'Untitled asset', format:f.format, nga:Number(f.nga)||0, price:Number(f.price)||0, buyer:f.buyer||'—', reason:f.reason||'—', requestor:this.users.req.name, date:'21 Jul 2026', stage:1, rejectedAt:null, dates:['21 Jul','','','','','']}; return {requests:[nr,...s.requests], screen:'my', selectedId:null, form:{asset:'',name:'',format:'Hyper',nga:'',price:'',buyer:'',reason:''}}; }); this.flash('Request submitted — routed to first approver.'); };
+  detailBack=()=>{ const r=this.state.role; this.setState({screen: r==='approver'?'inbox':(r==='admin'?'all':'my'), selectedId:null}); };
+
+  toggleFaq=(i)=>()=>this.setState(s=>({openFaq: s.openFaq===i?null:i}));
+  setAuditFilter=(f)=>()=>this.setState({auditFilter:f});
+  openAuditReq=(reqId)=>(e)=>{ e.preventDefault(); this.setState({screen:'detail', selectedId:reqId}); };
+
+  buildAuditLog(){
+    const titles=['Submitted','First Approval','Loss Prevention','Controller','Accounting','CFO'];
+    const out=[];
+    this.state.requests.forEach(r=>{
+      const steps=this.buildSteps(r);
+      steps.forEach((st,i)=>{
+        if(i===0) return;
+        if(st.status==='done') out.push({reqId:r.id, time:st.date||r.date, kind:'approve', actor:st.who, verb:'approved', detail:`${titles[i]} — ${r.name}`});
+        if(st.status==='rejected') out.push({reqId:r.id, time:st.date||r.date, kind:'reject', actor:st.who, verb:'rejected', detail:`${titles[i]} — ${r.name}`});
+      });
+      out.push({reqId:r.id, time:r.date, kind:'submit', actor:r.requestor, verb:'submitted', detail:`New request — ${r.format}, NGA ${this.fmt(r.nga)}`});
+    });
+    return out;
+  }
+  toggleNotif=()=>this.setState(s=>({notifOpen:!s.notifOpen}));
+  closeNotif=()=>this.setState({notifOpen:false});
+  markAllRead=()=>{ const ids=this.buildNotifRaw().map(n=>n.nid); this.setState(s=>({readNotifIds:[...new Set([...s.readNotifIds,...ids])]})); };
+  openNotif=(n)=>()=>{
+    this.setState(s=>({
+      readNotifIds:[...new Set([...s.readNotifIds,n.nid])],
+      notifOpen:false, selectedId:n.reqId, screen:'detail',
+    }));
+  };
+
+  buildNotifRaw(){
+    const s=this.state, role=s.role, u=this.users, out=[];
+    const titles=['Submitted','First Approval','Loss Prevention','Controller','Accounting','CFO'];
+    s.requests.forEach(r=>{
+      if(role==='approver' && r.rejectedAt==null && r.stage>=1 && r.stage<=5){
+        out.push({nid:`${r.id}-pending-${r.stage}`, reqId:r.id, kind:'review', title:'Awaiting your review', body:`${titles[r.stage]}: please evaluate ${r.name} (${r.id}).`, time:r.date});
+      }
+      if(role==='requestor' && r.rejectedAt!=null){
+        const who=this.buildSteps(r)[r.rejectedAt].who;
+        out.push({nid:`${r.id}-rejected`, reqId:r.id, kind:'rejected', title:'Request rejected', body:`${r.name} (${r.id}) was rejected by ${who} at ${titles[r.rejectedAt]}.`, time:r.date});
+      }
+      if(role==='requestor' && r.rejectedAt==null && r.stage>=6){
+        out.push({nid:`${r.id}-completed`, reqId:r.id, kind:'completed', title:'Request completed', body:`${r.name} (${r.id}) has been fully authorized by all approvers.`, time:r.date});
+      }
+    });
+    return out;
+  }
+
+  stopProp=(e)=>e.stopPropagation();
+  openAddUser=()=>this.setState({userModal:{mode:'add', id:null, name:'', email:'', role:'requestor', password:'', error:null}});
+  openEditUser=(acc)=>()=>this.setState({userModal:{mode:'edit', id:acc.id, name:acc.name, email:acc.email, role:acc.role, password:'', error:null}});
+  closeUserModal=()=>this.setState({userModal:null});
+  umField=(k)=>(e)=>{ const v=e.target.value; this.setState(s=>({userModal:{...s.userModal,[k]:v,error:null}})); };
+  removeUser=(acc)=>()=>{ this.setState(s=>({accounts:s.accounts.filter(a=>a.id!==acc.id)})); this.flash(`Removed ${acc.name} from the system.`); };
+  saveUserModal=()=>{
+    const m=this.state.userModal; if(!m) return;
+    if(!m.name.trim()) return this.setState({userModal:{...m, error:'Full name is required.'}});
+    if(!/^\S+@\S+\.\S+$/.test(m.email)) return this.setState({userModal:{...m, error:'Enter a valid email address.'}});
+    if(m.mode==='add' && !m.password) return this.setState({userModal:{...m, error:'Set a temporary password.'}});
+    if(m.mode==='add'){
+      this.setState(s=>({accounts:[...s.accounts, {id:Date.now(), name:m.name, email:m.email, role:m.role}], userModal:null}));
+      this.flash(`${m.name} added.`);
+    } else {
+      this.setState(s=>({accounts:s.accounts.map(a=>a.id===m.id?{...a,name:m.name,email:m.email,role:m.role}:a), userModal:null}));
+      this.flash(`${m.name} updated.`);
+    }
+  };
+
+  renderVals(){
+    const s=this.state, u=this.users;
+    const role=s.role, screen=s.screen;
+    const active=r=>r.rejectedAt==null && r.stage<6;
+    const reqs=s.requests;
+    const decoAll=reqs.map((r,i)=>this.decorate(r,i));
+    const inbox=reqs.filter(r=>active(r)&&r.stage>=1&&r.stage<=5).map((r,i)=>this.decorate(r,i));
+
+    const nb=(on)=>`display:flex;align-items:center;gap:12px;width:100%;padding:11px 16px;border:none;border-radius:9px;cursor:pointer;font-weight:500;font-size:14px;text-align:left;transition:background .15s,box-shadow .2s,transform .12s;background:${on?'rgba(255,255,255,.13)':'transparent'};color:${on?'#fff':'rgba(255,255,255,.72)'};box-shadow:${on?'inset 3px 0 0 #2dd4bf':'none'}`;
+    const nav={
+      showNew:role==='requestor', showMy:role==='requestor', showInbox:role==='approver', showAll:role==='admin', showMapping:role==='admin', showUsers:role==='admin', showAudit:role==='admin',
+      dashStyle:nb(screen==='dashboard'), newStyle:nb(screen==='new'), myStyle:nb(screen==='my'||(screen==='detail'&&role==='requestor')),
+      inboxStyle:nb(screen==='inbox'||(screen==='detail'&&role==='approver')), allStyle:nb(screen==='all'||(screen==='detail'&&role==='admin')), mapStyle:nb(screen==='mapping'), usersStyle:nb(screen==='users'), helpStyle:nb(screen==='help'), auditStyle:nb(screen==='audit'),
+      inboxBadge:`margin-left:auto;background:#2dd4bf;color:#04302c;font-weight:700;font-size:11px;padding:1px 8px;border-radius:99px;font-family:'IBM Plex Mono'`,
+    };
+    const rb=(on)=>`padding:6px 13px;border:none;border-radius:7px;cursor:pointer;font-weight:600;font-size:12px;background:${on?'#fff':'transparent'};color:${on?'#0b3a37':'#8a968f'};box-shadow:${on?'0 1px 2px rgba(0,0,0,.08)':'none'}`;
+
+    const titles={dashboard:['Dashboard','Overview of asset-sale approvals'],new:['New Sale Request','Open a request to dispose of an asset'],my:['My Requests','Requests you have submitted'],inbox:['Approval Inbox','Requests awaiting your signature'],all:['All Requests','Every request in the system'],mapping:['Routing & Mapping','Format bindings and NGA thresholds'],users:['User Management','Add, edit, and remove system users'],help:['How to Use','A short guide to the approval workflow'],audit:['Audit Log','Every submit, approval, and rejection event']};
+    const det = s.selectedId ? this.decorate(reqs.find(r=>r.id===s.selectedId), 0) : null;
+    let detail=null;
+    if(det){
+      const canAct=(role==='approver'||role==='admin') && det.rejectedAt==null && det.stage>=1 && det.stage<6;
+      const cur=det.steps[det.stage]||{};
+      detail={...det, canAct, isDone:det.stage>=6, isRejected:det.rejectedAt!=null,
+        actStep:det.stage, actTitle:cur.title, actWho:cur.who};
+    }
+    let screenTitle, screenSub;
+    if(screen==='detail'&&detail){ screenTitle=detail.id; screenSub=detail.name; }
+    else { const t=titles[screen]||['','']; screenTitle=t[0]; screenSub=t[1]; }
+
+    let listItems=[], listCount=0, listCountLabel='', listEmptyText='';
+    if(screen==='inbox'){ listItems=inbox; listCountLabel='requests awaiting your signature'; listEmptyText='Nothing awaiting your approval right now.'; }
+    else if(screen==='my'){ listItems=decoAll; listCountLabel='requests submitted by you'; listEmptyText='You have not submitted any requests yet.'; }
+    else if(screen==='all'){ listItems=decoAll; listCountLabel='requests in the system'; listEmptyText='No requests found.'; }
+    listCount=listItems.length;
+
+    // dashboard buckets
+    const cnt=p=>reqs.filter(p).length;
+    const bdefs=[['First Approval',cnt(r=>active(r)&&r.stage===1),'#0f766e'],['Loss Prevention',cnt(r=>active(r)&&r.stage===2),'#0f766e'],['Controller',cnt(r=>active(r)&&r.stage===3),'#0f766e'],['Accounting',cnt(r=>active(r)&&r.stage===4),'#0f766e'],['CFO',cnt(r=>active(r)&&r.stage===5),'#0f766e'],['Completed',cnt(r=>r.stage>=6),'#15803d'],['Rejected',cnt(r=>r.rejectedAt!=null),'#b91c1c']];
+    const maxn=Math.max(1,...bdefs.map(b=>b[1]));
+    const buckets=bdefs.map(b=>({label:b[0], n:b[1], barStyle:`height:8px;border-radius:99px;background:${b[2]};width:${Math.round(b[1]/maxn*100)}%`}));
+    const activity=decoAll.slice(0,6).map(r=>({id:r.id, name:r.name, stepName:r.stepName, date:r.date, dotStyle:`width:8px;height:8px;border-radius:50%;background:${r.sc}`}));
+
+    const totalActive=reqs.filter(active).reduce((a,r)=>a+r.nga,0);
+    const stats={pending:inbox.length, myOpen:reqs.filter(active).length, completed:cnt(r=>r.stage>=6), totalFmt:this.fmt(totalActive)};
+
+    const persona = role==='requestor'?u.req : role==='approver'?{name:'Ploy Rattana',title:'Approver — Loss Prevention'} : {name:'System Admin',title:'DOA Administrator'};
+    const initials = persona.name.split(' ').map(w=>w[0]).slice(0,2).join('');
+
+    const nga=Number(s.form.nga)||0; const fa=this.firstApprover(nga);
+    const route={ngaFmt: s.form.nga!==''?this.fmt(nga):'—', who:fa.who, tier:fa.tier};
+
+    const matrixRows=this.formats.map(f=>({f, a:u.A.name, b:u.B.name, c:u.C.name}));
+
+    const roleLabels={requestor:'Requestor', approver:'Approver', admin:'Admin'};
+    const userList=s.accounts.map(a=>({...a, roleLabel:roleLabels[a.role]||a.role, initials:a.name.split(' ').map(w=>w[0]).slice(0,2).join(''), edit:this.openEditUser(a), remove:this.removeUser(a)}));
+    let userModal=null;
+    if(s.userModal){
+      const m=s.userModal, isAdd=m.mode==='add';
+      userModal={...m, title:isAdd?'Add user':'Edit user', sub:isAdd?'Create a new account and set an initial password.':'Update account details, email, or reset the password.',
+        pwLabel:isAdd?'Temporary password':'New password', pwPlaceholder:isAdd?'Set a temporary password':'Leave blank to keep current password',
+        saveLabel:isAdd?'Add user':'Save changes'};
+    }
+    const roleOptions=[{v:'requestor',l:'Requestor'},{v:'approver',l:'Approver'},{v:'admin',l:'Admin'}];
+
+    const iconPal={
+      review:{c:'#0f766e',bg:'#ccfbf1',glyph:'!'},
+      rejected:{c:'#b91c1c',bg:'#fee2e2',glyph:'✕'},
+      completed:{c:'#15803d',bg:'#dcfce7',glyph:'✓'},
+    };
+    const notifItems=this.buildNotifRaw().map(n=>{
+      const p=iconPal[n.kind], unread=!s.readNotifIds.includes(n.nid);
+      return {...n, id:n.reqId, unread, bg:unread?'#f8faf9':'#fff',
+        iconWrap:`width:32px;height:32px;flex:none;border-radius:9px;background:${p.bg};color:${p.c};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px`,
+        iconGlyph:p.glyph, open:this.openNotif(n)};
+    });
+    const notif={open:s.notifOpen, items:notifItems, empty:notifItems.length===0, unreadCount:notifItems.filter(n=>n.unread).length, hasUnread:notifItems.some(n=>n.unread), bellStyle: notifItems.some(n=>n.unread) ? 'animation:bellRing 2.2s ease infinite' : ''};
+
+    const flowDefs=[['1','Request Submitted','Requestor'],['2','First Approval','A / B / C by NGA'],['3','Loss Prevention',u.lp.name],['4','Controller',u.ctrl.name],['5','Accounting',u.acc.name],['6','CFO',u.cfo.name]];
+    const helpFlow=flowDefs.map((f,i)=>({n:f[0], title:f[1], who:f[2], hasArrow:i<flowDefs.length-1}));
+    const helpRequestor=[{n:1,text:'Click "New Request" and fill in the asset details, NGA, sale price, and buyer.'},{n:2,text:'Check the routing preview — it shows which authorizer signs first based on NGA and format.'},{n:3,text:'Submit — the request moves to "My Requests" and starts the approval chain.'},{n:4,text:'Track progress on the request\u2019s timeline; you\u2019ll be notified if it\u2019s rejected or fully approved.'}];
+    const helpApprover=[{n:1,text:'Open "Approval Inbox" — it lists every request currently waiting on you.'},{n:2,text:'Click a request to review its asset details, NGA, and reason for sale.'},{n:3,text:'Add an optional comment, then Approve to forward it to the next stage, or Reject to stop it.'},{n:4,text:'A rejected request notifies the requestor with your name and stage.'}];
+    const helpAdmin=[{n:1,text:'Use "Routing & Mapping" to review NGA thresholds and format-to-authorizer bindings.'},{n:2,text:'Use "User Management" to add, edit, or remove accounts and reset passwords.'},{n:3,text:'Use "All Requests" to audit any request regardless of who submitted or is approving it.'},{n:4,text:'Roles (Requestor / Approver / Admin) control which screens and actions a user can access.'}];
+    const faqDefs=[
+      ['What is NGA?','Net Gain Amount — the net value of the asset in THB. It decides which authorizer signs the first approval stage: under ฿100K goes to Authorizer A, under ฿2M to B, under ฿4M to C.'],
+      ['Can approval steps happen in parallel?','No — each request is signed one approver at a time, in a fixed order: First Approval → Loss Prevention → Controller → Accounting → CFO.'],
+      ['What happens if a request is rejected?','The chain stops immediately. The requestor is notified of who rejected it and at which stage, and must revise and resubmit.'],
+      ['Does the format affect routing?','Yes — each asset format (Hyper, Market, BCM, etc.) binds to a specific authorizer per NGA tier, configured under Routing & Mapping.'],
+    ];
+    const faqs=faqDefs.map((f,i)=>({q:f[0], a:f[1], isOpen:s.openFaq===i, toggle:this.toggleFaq(i), iconStyle:`width:22px;height:22px;border-radius:6px;background:#eef1f0;color:#3d4a47;display:flex;align-items:center;justify-content:center;font-size:14px;flex:none;transform:${s.openFaq===i?'rotate(45deg)':'none'};transition:transform .15s`}));
+
+    const auditPal={submit:{c:'#0f766e',bg:'#ccfbf1',g:'●'}, approve:{c:'#15803d',bg:'#dcfce7',g:'✓'}, reject:{c:'#b91c1c',bg:'#fee2e2',g:'✕'}};
+    const filterDefs=[['all','All'],['submit','Submitted'],['approve','Approved'],['reject','Rejected']];
+    const auditFilters=filterDefs.map(f=>({label:f[1], select:this.setAuditFilter(f[0]), style:rb(s.auditFilter===f[0])}));
+    const rawLog=this.buildAuditLog().filter(e=> s.auditFilter==='all' || e.kind===s.auditFilter);
+    const auditItems=rawLog.map(e=>{ const p=auditPal[e.kind]; return {...e, glyph:p.g, iconWrap:`width:30px;height:30px;flex:none;border-radius:8px;background:${p.bg};color:${p.c};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px`, open:this.openAuditReq(e.reqId)}; });
+
+    return {
+      isDashboard:screen==='dashboard', isNew:screen==='new', isListScreen:(screen==='my'||screen==='inbox'||screen==='all'), isDetail:screen==='detail', isMapping:screen==='mapping', isUsers:screen==='users', isHelp:screen==='help', isAudit:screen==='audit',
+      helpFlow, helpRequestor, helpApprover, helpAdmin, faqs, auditFilters, auditItems, auditEmpty:auditItems.length===0,
+      userList, userModal, roleOptions, stopProp:this.stopProp, openAddUser:this.openAddUser, closeUserModal:this.closeUserModal,
+      umName:this.umField('name'), umEmail:this.umField('email'), umRole:this.umField('role'), umPassword:this.umField('password'), saveUserModal:this.saveUserModal,
+      screenTitle, screenSub, nav, stats,
+      roleReqStyle:rb(role==='requestor'), roleAppStyle:rb(role==='approver'), roleAdmStyle:rb(role==='admin'),
+      currentUserName:persona.name, currentUserTitle:persona.title, avatarInitials:initials,
+      goDashboard:this.go('dashboard'), goNew:this.go('new'), goMy:this.go('my'), goInbox:this.go('inbox'), goAll:this.go('all'), goMapping:this.go('mapping'), goUsers:this.go('users'), goHelp:this.go('help'), goAudit:this.go('audit'),
+      setRoleRequestor:this.setRole('requestor'), setRoleApprover:this.setRole('approver'), setRoleAdmin:this.setRole('admin'),
+      buckets, activity,
+      form:s.form, formats:this.formats,
+      fAsset:this.setForm('asset'), fName:this.setForm('name'), fFormat:this.setForm('format'), fNga:this.setForm('nga'), fPrice:this.setForm('price'), fBuyer:this.setForm('buyer'), fReason:this.setForm('reason'),
+      submitForm:this.submitForm, showRoutingPreview:this.props.showRoutingPreview!==false, route,
+      listItems, listCount, listCountLabel, listEmpty:listItems.length===0, listEmptyText,
+      detail, detailBack:this.detailBack, approveCurrent:this.approveCurrent, rejectCurrent:this.rejectCurrent,
+      matrixRows, aName:u.A.name, bName:u.B.name, cName:u.C.name, lpName:u.lp.name, ctrlName:u.ctrl.name, accName:u.acc.name, cfoName:u.cfo.name,
+      toast:s.toast,
+      notif, toggleNotif:this.toggleNotif, closeNotif:this.closeNotif, markAllRead:this.markAllRead,
+    };
+  }
+}
+</script>
+</body>
+</html>

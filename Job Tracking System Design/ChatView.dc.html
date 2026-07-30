@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/industry-feb92b32-f7a6-4366-a007-a629b2f673f7/styles.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+</helmet>
+<div style="display:flex;height:calc(100vh - 158px);border:1px solid #e3e8e6;border-radius:16px;overflow:hidden;max-width:1150px;background:#fff">
+  <div style="width:264px;border-right:1px solid #eef1f0;overflow-y:auto;flex:none;background:#fbfcfc">
+    <div style="padding:16px 18px 8px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#96a19d">Team channels</div>
+    <sc-for list="{{ teamConvs }}" as="c" hint-placeholder-count="4">
+      <div style="display:flex;align-items:center;gap:11px;padding:10px 16px;cursor:pointer;background:{{ c.bg }};border-left:3px solid {{ c.borderColor }}" onClick="{{ c.select }}">
+        <div style="width:34px;height:34px;flex:none;border-radius:10px;background:{{ c.avBg }};color:{{ c.avColor }};display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:14px">#</div>
+        <div style="min-width:0;flex:1">
+          <div style="font-size:13px;font-weight:{{ c.weight }};color:#10201d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.name }}</div>
+          <div style="font-size:11px;color:#96a19d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.lastMsg }}</div>
+        </div>
+      </div>
+    </sc-for>
+    <div style="padding:16px 18px 8px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#96a19d">Direct messages</div>
+    <sc-for list="{{ dmConvs }}" as="c" hint-placeholder-count="2">
+      <div style="display:flex;align-items:center;gap:11px;padding:10px 16px;cursor:pointer;background:{{ c.bg }};border-left:3px solid {{ c.borderColor }}" onClick="{{ c.select }}">
+        <div style="width:34px;height:34px;flex:none;border-radius:50%;background:{{ c.avBg }};color:{{ c.avColor }};display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:12px">{{ c.initials }}</div>
+        <div style="min-width:0;flex:1">
+          <div style="font-size:13px;font-weight:{{ c.weight }};color:#10201d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.name }}</div>
+          <div style="font-size:11px;color:#96a19d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.lastMsg }}</div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <div style="display:flex;align-items:center;gap:11px;padding:14px 20px;border-bottom:1px solid #eef1f0">
+      <div style="width:38px;height:38px;flex:none;border-radius:10px;background:#dbeafe;color:#1e3a8a;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:14px">{{ activeGlyph }}</div>
+      <div>
+        <div style="font-family:var(--font-heading);font-weight:700;font-size:15px">{{ activeName }}</div>
+        <div style="font-size:11px;color:#96a19d">{{ activeSub }}</div>
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:20px 22px;display:flex;flex-direction:column;gap:16px;background:#fbfcfc">
+      <sc-for list="{{ messages }}" as="m" hint-placeholder-count="4">
+        <div style="display:flex;gap:10px;flex-direction:{{ m.rowDir }};align-items:flex-end">
+          <div style="width:30px;height:30px;flex:none;border-radius:50%;background:{{ m.avBg }};color:{{ m.avColor }};display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:10.5px">{{ m.initials }}</div>
+          <div style="display:flex;flex-direction:column;align-items:{{ m.align }};max-width:70%">
+            <div style="font-size:10.5px;color:#96a19d;margin-bottom:4px;padding:0 4px">{{ m.senderName }} · {{ m.rel }}</div>
+            <div style="padding:10px 14px;background:{{ m.bubbleBg }};color:{{ m.bubbleColor }};font-size:13px;line-height:1.45;border-radius:{{ m.radius }};border:{{ m.border }}">{{ m.text }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:10px;padding:14px 18px;border-top:1px solid #eef1f0;background:#fff">
+      <input style="flex:1;border:1px solid #d7dedb;border-radius:99px;background:#f8faf9;padding:11px 18px;font-size:13px;font-family:var(--font-body);color:#10201d" placeholder="Write a message…" value="{{ draft }}" onChange="{{ setDraft }}" onKeyDown="{{ onKeyDown }}"/>
+      <button onClick="{{ send }}" style="width:44px;height:44px;flex:none;border-radius:50%;border:none;background:#2563eb;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(37,99,235,.3)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const initials = (name) => (name || '?').split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
+const AVATAR = [['#dbeafe', '#1e3a8a'], ['#dcfce7', '#14532d'], ['#fef3c7', '#92400e'], ['#fee2e2', '#7f1d1d'], ['#e0f2fe', '#075985'], ['#ede9fe', '#5b21b6']];
+function pick(seed) { let h = 0; for (let i = 0; i < (seed || '').length; i++) h = (h * 31 + seed.charCodeAt(i)) % AVATAR.length; return AVATAR[h]; }
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const convs = (p.conversations || []).map(c => {
+      const [avBg, avColor] = pick(c.name);
+      return { ...c, initials: initials(c.name), avBg: c.active ? '#2563eb' : avBg, avColor: c.active ? '#fff' : avColor,
+        bg: c.active ? '#eff6ff' : 'transparent', borderColor: c.active ? '#2563eb' : 'transparent', weight: c.active ? 600 : 500 };
+    });
+    const active = (p.conversations || []).find(c => c.active);
+    const messages = (p.messages || []).map(m => {
+      const [avBg, avColor] = pick(m.senderName);
+      return { ...m, initials: m.initials || initials(m.senderName),
+        align: m.isMe ? 'flex-end' : 'flex-start', rowDir: m.isMe ? 'row-reverse' : 'row',
+        avBg: m.isMe ? '#2563eb' : avBg, avColor: m.isMe ? '#fff' : avColor,
+        bubbleBg: m.isMe ? '#2563eb' : '#fff', bubbleColor: m.isMe ? '#fff' : '#10201d',
+        border: m.isMe ? 'none' : '1px solid #e3e8e6',
+        radius: m.isMe ? '14px 14px 4px 14px' : '14px 14px 14px 4px' };
+    });
+    return {
+      teamConvs: convs.filter(c => c.kind === 'team'), dmConvs: convs.filter(c => c.kind === 'dm'),
+      activeName: active ? (active.kind === 'team' ? '#' + active.name : active.name) : '',
+      activeGlyph: active ? (active.kind === 'team' ? '#' : initials(active.name)) : '#',
+      activeSub: active ? (active.kind === 'team' ? 'Team channel' : 'Direct message') : '',
+      messages, draft: p.draft, setDraft: p.setDraft, send: p.send,
+      onKeyDown: (e) => { if (e.key === 'Enter') p.send(); },
+    };
+  }
+}
+
+</script>
+</body>
+</html>

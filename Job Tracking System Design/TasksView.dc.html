@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="stylesheet" href="_ds/industry-feb92b32-f7a6-4366-a007-a629b2f673f7/styles.css"></helmet>
+<div style="display:flex;flex-direction:column;gap:var(--space-4);max-width:1280px">
+  <sc-if value="{{ hasSummary }}" hint-placeholder-val="{{ false }}">
+    <div style="display:grid;grid-template-columns:repeat({{ summaryCols }},1fr);gap:var(--space-4)">
+      <sc-for list="{{ summary }}" as="c" hint-placeholder-count="2">
+        <div class="blueprint" style="padding:18px 20px;display:flex;align-items:center;gap:14px">
+          <div style="width:42px;height:42px;flex:none;border-radius:11px;background:{{ c.iconBg }};color:{{ c.iconColor }};display:flex;align-items:center;justify-content:center">
+            <div style="width:11px;height:11px;border-radius:50%;background:currentColor"></div>
+          </div>
+          <div>
+            <div class="statnum" style="font-size:26px;line-height:1">{{ c.value }}</div>
+            <div class="kicker" style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5c6a67;margin-top:3px">{{ c.label }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+  <sc-if value="{{ showControls }}" hint-placeholder-val="{{ true }}">
+  <div style="display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--color-divider)">
+    <sc-for list="{{ statusTabs }}" as="tab" hint-placeholder-count="6">
+      <button class="tab-btn {{ tab.activeClass }}" onClick="{{ tab.select }}">{{ tab.label }}</button>
+    </sc-for>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap">
+    <sc-if value="{{ isAdmin }}">
+      <select class="input" style="width:auto;min-width:150px" value="{{ teamFilter }}" onChange="{{ setTeamFilter }}">
+        <sc-for list="{{ teamFilterOptions }}" as="o" hint-placeholder-count="5">
+          <option value="{{ o.value }}">{{ o.label }}</option>
+        </sc-for>
+      </select>
+    </sc-if>
+    <sc-if value="{{ isUser }}">
+      <div class="seg">
+        <sc-for list="{{ scopeTabs }}" as="sc" hint-placeholder-count="2">
+          <label class="seg-opt"><input type="radio" name="scope" checked="{{ sc.active }}" onChange="{{ sc.select }}"/>{{ sc.label }}</label>
+        </sc-for>
+      </div>
+    </sc-if>
+    <select class="input" style="width:auto;min-width:150px" value="{{ priorityFilter }}" onChange="{{ setPriorityFilter }}">
+      <sc-for list="{{ priorityFilterOptions }}" as="o" hint-placeholder-count="4">
+        <option value="{{ o.value }}">{{ o.label }}</option>
+      </sc-for>
+    </select>
+    <div class="text-muted" style="font-size:12.5px;margin-left:auto">{{ countLabel }}</div>
+  </div>
+  </sc-if>
+  <sc-if value="{{ hideControls }}" hint-placeholder-val="{{ false }}">
+    <div class="text-muted" style="font-size:12.5px">{{ countLabel }}</div>
+  </sc-if>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th style="width:36%">Task</th>
+        <th>Team</th>
+        <th>Assignees</th>
+        <th>Priority</th>
+        <th>Impact</th>
+        <th>Status</th>
+        <th>Due</th>
+      </tr>
+    </thead>
+    <tbody>
+      <sc-for list="{{ tasks }}" as="t" hint-placeholder-count="8">
+        <tr style="cursor:pointer" onClick="{{ t.openThis }}">
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              <sc-if value="{{ t.hasSubtasks }}" hint-placeholder-val="{{ false }}">
+                <span onClick="{{ t.toggleThis }}" style="display:inline-flex;transform:{{ t.chevronRotate }};transition:transform .15s">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"></path></svg>
+                </span>
+              </sc-if>
+              <div>
+                <div style="font-weight:600;font-size:13.5px">{{ t.title }}</div>
+                <sc-if value="{{ t.hasSubtasks }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-size:11px;color:color-mix(in srgb, var(--color-text) 55%, transparent)">{{ t.subtaskDoneCount }}/{{ t.subtaskTotal }} subtasks</div>
+                </sc-if>
+              </div>
+            </div>
+          </td>
+          <td style="font-size:13px">{{ t.teamName }}</td>
+          <td style="font-size:13px">{{ t.firstAssigneeName }}<sc-if value="{{ t.hasMoreAssignees }}"> +{{ t.extraAssigneeCount }}</sc-if></td>
+          <td>
+            <span class="{{ t.priorityLvlClass }}">{{ t.priorityLabel }}</span>
+          </td>
+          <td>
+            <span class="{{ t.impactLvlClass }}">{{ t.impactLabel }}</span>
+          </td>
+          <td><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="{{ t.statusTagClass }}">{{ t.statusLabel }}</span><sc-if value="{{ t.overdue }}"><span class="badge b-overdue">Overdue</span></sc-if></div></td>
+          <td style="font-size:12.5px" class="text-muted">{{ t.dueLabel }}</td>
+        </tr>
+        <sc-if value="{{ t.showSubtasks }}" hint-placeholder-val="{{ false }}">
+          <tr>
+            <td colspan="7" style="background:color-mix(in srgb, var(--color-text) 3%, transparent);padding:0">
+              <div style="padding:8px 16px 12px 40px;display:flex;flex-direction:column;gap:6px">
+                <sc-for list="{{ t.subtasks }}" as="sub" hint-placeholder-count="3">
+                  <div style="display:flex;align-items:center;gap:10px;font-size:12.5px">
+                    <input type="checkbox" checked="{{ sub.done }}" onChange="{{ sub.toggle }}"/>
+                    <span style="{{ sub.textStyle }}">{{ sub.title }}</span>
+                    <span class="text-muted" style="margin-left:auto">{{ sub.assigneeName }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </td>
+          </tr>
+        </sc-if>
+      </sc-for>
+    </tbody>
+  </table>
+
+  <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+    <div class="text-muted" style="padding:32px;text-align:center;font-size:13px">No tasks match these filters.</div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const statusTabs = (p.statusTabs || []).map(t => ({ ...t, activeClass: t.active ? 'active' : '' }));
+    const tags = { todo: 'badge b-todo', in_progress: 'badge b-progress', submitted: 'badge b-submitted', rejected: 'badge b-rejected', completed: 'badge b-completed' };
+    const LVL = { high: 'badge lvl-high', medium: 'badge lvl-med', low: 'badge lvl-low' };
+    const cap = (x) => (x ? x.charAt(0).toUpperCase() + x.slice(1) : '');
+    const tasks = (p.tasks || []).map(t => ({
+      ...t,
+      hasSubtasks: t.subtasks && t.subtasks.length > 0,
+      subtaskTotal: t.subtasks ? t.subtasks.length : 0,
+      showSubtasks: t.expanded && t.subtasks && t.subtasks.length > 0,
+      chevronRotate: t.expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+      firstAssigneeName: (t.assigneeNames || [])[0] || '',
+      hasMoreAssignees: t.assigneeNames && t.assigneeNames.length > 1,
+      extraAssigneeCount: t.assigneeNames ? t.assigneeNames.length - 1 : 0,
+      statusTagClass: tags[t.status] || 'tag-neutral',
+      priorityLvlClass: LVL[t.priority] || 'badge lvl-low', priorityLabel: cap(t.priority),
+      impactLvlClass: LVL[t.impact] || 'badge lvl-low', impactLabel: cap(t.impact),
+      subtasks: (t.subtasks || []).map(sub => ({ ...sub, textStyle: sub.done ? 'text-decoration:line-through;opacity:.6' : '' })),
+    }));
+    return {
+      isAdmin: p.isAdmin, isUser: !p.isAdmin, statusTabs, teamFilterOptions: p.teamFilterOptions, teamFilter: p.teamFilter, setTeamFilter: p.setTeamFilter,
+      scopeTabs: p.scopeTabs, priorityFilterOptions: p.priorityFilterOptions, priorityFilter: p.priorityFilter, setPriorityFilter: p.setPriorityFilter,
+      tasks, noResults: tasks.length === 0, countLabel: tasks.length + (tasks.length === 1 ? ' task' : ' tasks'),
+      showControls: !p.hideControls, hideControls: !!p.hideControls,
+      summary: p.summary || [], hasSummary: !!(p.summary && p.summary.length), summaryCols: (p.summary || []).length || 2,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

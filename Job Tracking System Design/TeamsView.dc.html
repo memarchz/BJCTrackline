@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/industry-feb92b32-f7a6-4366-a007-a629b2f673f7/styles.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+</helmet>
+<div style="max-width:1200px">
+  <sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+    <div>
+      <h2 style="margin:0 0 4px">Teams</h2>
+      <div class="text-muted" style="font-size:13px;margin-bottom:var(--space-4)">Click a team to see member performance.</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-4)">
+        <sc-for list="{{ teamList }}" as="team" hint-placeholder-count="4">
+          <div style="position:relative;overflow:hidden;border:1px solid #e3e8ef;border-radius:18px;background:#fff;cursor:pointer;transition:transform .18s ease,box-shadow .2s ease,border-color .18s ease" style-hover="transform:translateY(-4px);box-shadow:0 16px 34px rgba(16,32,29,.13);border-color:#c7d2fe" onClick="{{ team.openThis }}">
+            <div style="height:64px;background:linear-gradient(120deg,#1e3a8a,#2563eb);position:relative">
+              <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.08) 1px,transparent 1px);background-size:22px 22px"></div>
+              <div style="position:absolute;top:14px;right:16px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#fff;background:rgba(255,255,255,.16);padding:3px 10px;border-radius:99px;backdrop-filter:blur(4px)">{{ team.memberCount }} members</div>
+            </div>
+            <div style="padding:0 20px 20px">
+              <div style="width:48px;height:48px;border-radius:13px;background:#fff;border:1px solid #e3e8ef;box-shadow:0 6px 16px rgba(16,32,29,.12);display:flex;align-items:center;justify-content:center;margin-top:-24px;margin-bottom:14px;position:relative;z-index:1">
+                <div style="width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#3b82f6,#1e3a8a);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:14px">{{ team.badge }}</div>
+              </div>
+              <div style="font-family:var(--font-heading);font-weight:700;font-size:19px;color:#10201d;margin-bottom:16px">{{ team.name }}</div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px">
+                <span style="font-size:12px;color:#5c6a67;font-weight:500">Completion</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#1e3a8a">{{ team.pct }}%</span>
+              </div>
+              <div style="height:8px;background:#eef1f6;border-radius:99px;overflow:hidden;margin-bottom:16px">
+                <div style="height:100%;border-radius:99px;background:linear-gradient(90deg,#2563eb,#60a5fa);width:{{ team.pct }}%;transition:width .4s ease"></div>
+              </div>
+              <div style="display:flex;gap:10px">
+                <div style="flex:1;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:11px;padding:9px 12px">
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;color:#15803d">{{ team.completed }}<span style="font-size:12px;color:#86b39a">/{{ team.total }}</span></div>
+                  <div style="font-size:10.5px;color:#4d7c5f;margin-top:1px">Completed</div>
+                </div>
+                <div style="flex:1;background:{{ team.lateBg }};border:1px solid {{ team.lateBorder }};border-radius:11px;padding:9px 12px">
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;color:{{ team.lateColor }}">{{ team.late }}</div>
+                  <div style="font-size:10.5px;color:{{ team.lateColor }};opacity:.8;margin-top:1px">Late</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isTeam }}" hint-placeholder-val="{{ false }}">
+    <div>
+      <sc-if value="{{ showBackToList }}" hint-placeholder-val="{{ true }}">
+        <button class="btn btn-ghost" style="padding:0;margin-bottom:10px" onClick="{{ backToList }}">&larr; All teams</button>
+      </sc-if>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px">
+        <div>
+          <h2 style="margin:0 0 4px">{{ teamHeading }}</h2>
+          <div class="text-muted" style="font-size:13px;margin-bottom:var(--space-4)">{{ teamDetail.completed }}/{{ teamDetail.total }} tasks completed · {{ teamDetail.late }} late</div>
+        </div>
+        <sc-if value="{{ canAddTask }}" hint-placeholder-val="{{ false }}">
+          <button class="btn btn-primary" onClick="{{ onNewTaskHere }}" style="flex:none;display:inline-flex;align-items:center;gap:8px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"></path></svg>
+            New Task
+          </button>
+        </sc-if>
+      </div>
+
+      <sc-if value="{{ showTabs }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;gap:6px;background:#eef1f0;border-radius:11px;padding:4px;margin-bottom:22px;width:fit-content">
+          <button onClick="{{ showMyTeam }}" style="{{ tabMyTeamStyle }}">{{ overviewTabLabel }}</button>
+          <button onClick="{{ showPerf }}" style="{{ tabPerfStyle }}">Team Performance</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showPerfPage }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:26px">
+          <sc-for list="{{ perfStats }}" as="c" hint-placeholder-count="4">
+            <div onClick="{{ c.openThis }}" class="stat-click" style="border:1px solid {{ c.borderColor }};border-radius:16px;background:{{ c.gradient }};padding:20px 22px;display:flex;align-items:center;gap:16px;min-width:0;cursor:pointer;transition:transform .14s ease,box-shadow .18s ease" style-hover="transform:translateY(-3px);box-shadow:0 10px 24px rgba(10,30,26,.12)">
+              <div style="width:52px;height:52px;flex:none;border-radius:14px;background:{{ c.color }};color:#fff;display:flex;align-items:center;justify-content:center">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9" opacity="0.35"></circle><path d="{{ c.iconPath }}"></path></svg>
+              </div>
+              <div style="min-width:0">
+                <div class="statnum" style="font-family:'IBM Plex Mono',monospace;font-size:36px;line-height:1;color:{{ c.darkText }}">{{ c.value }}</div>
+                <div class="kicker" style="font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:{{ c.color }};margin-top:6px;font-weight:600;text-wrap:balance">{{ c.label }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <sc-if value="{{ showStatModal }}" hint-placeholder-val="{{ false }}">
+          <div style="position:fixed;inset:0;background:rgba(16,32,29,.45);display:flex;align-items:center;justify-content:center;z-index:60;animation:fadeIn .16s ease" onClick="{{ closeStatModal }}">
+            <div style="background:#fff;border-radius:18px;width:640px;max-width:92%;max-height:78vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(10,30,26,.28)" onClick="{{ stopModal }}">
+              <div style="display:flex;align-items:center;gap:10px;padding:18px 22px;border-bottom:1px solid #eef1f0">
+                <div style="font-family:var(--font-heading);font-weight:700;font-size:16px">{{ modalTitle }}</div>
+                <span style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:#2563eb;background:#dbeafe;padding:2px 9px;border-radius:99px">{{ modalCount }}</span>
+                <button onClick="{{ closeStatModal }}" style="margin-left:auto;width:32px;height:32px;border:1px solid #e3e8e6;background:#fff;border-radius:9px;color:#5c6a67;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#f8faf9">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+                </button>
+              </div>
+              <div style="overflow-y:auto;padding:14px 22px 20px;display:flex;flex-direction:column;gap:9px">
+                <sc-for list="{{ modalTasks }}" as="t" hint-placeholder-count="3">
+                  <div style="display:flex;align-items:center;gap:14px;border:1px solid #e3e8e6;border-radius:11px;padding:12px 15px">
+                    <div style="min-width:0;flex:1">
+                      <div style="font-weight:600;font-size:13.5px;color:#10201d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.title }}</div>
+                      <div style="font-size:11.5px;color:#8a968f;margin-top:3px">{{ t.assigneeSummary }}</div>
+                    </div>
+                    <span class="tag {{ t.statusTagClass }}" style="flex:none">{{ t.statusLabel }}</span>
+                    <div style="width:96px;flex:none;text-align:right;font-family:var(--font-mono);font-size:12px;color:#3d4a47">{{ t.dueLabel }}</div>
+                  </div>
+                </sc-for>
+                <sc-if value="{{ noModalTasks }}" hint-placeholder-val="{{ true }}">
+                  <div style="border:1px dashed #cdd7d3;border-radius:12px;padding:26px;text-align:center;color:#8a968f;font-size:13px">No tasks in this category.</div>
+                </sc-if>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin-bottom:16px">
+          <div style="border:1px solid #e3e8e6;border-radius:16px;background:#fff;overflow:hidden">
+            <div style="padding:16px 20px;background:linear-gradient(120deg,#1e3a8a,#2563eb);color:#fff;display:flex;align-items:center;gap:10px">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4z"></path><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"></path></svg>
+              <span style="font-family:var(--font-heading);font-weight:700;font-size:14px">Top performers</span>
+            </div>
+            <div style="display:flex;align-items:flex-end;justify-content:center;gap:16px;padding:26px 20px 22px">
+              <sc-for list="{{ podium }}" as="m" hint-placeholder-count="3">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:9px;width:130px">
+                  <div style="position:relative">
+                    <div style="width:{{ m.avatarSize }};height:{{ m.avatarSize }};border-radius:50%;background:{{ m.ringColor }};display:flex;align-items:center;justify-content:center;color:#fff;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:{{ m.avatarFont }};box-shadow:0 6px 18px rgba(10,30,26,.16)">{{ m.initials }}</div>
+                    <div style="position:absolute;bottom:-4px;right:-4px;width:24px;height:24px;border-radius:50%;background:{{ m.medalColor }};color:#fff;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:12px;border:2px solid #fff">{{ m.rank }}</div>
+                  </div>
+                  <div style="text-align:center">
+                    <div style="font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px">{{ m.name }}</div>
+                    <div style="font-size:10.5px;color:#8a968f">{{ m.completedCount }} done · {{ m.onTimeRate }}%</div>
+                  </div>
+                  <div style="width:100%;background:{{ m.barColor }};border-radius:10px 10px 0 0;height:{{ m.barHeight }};display:flex;align-items:flex-start;justify-content:center;padding-top:8px;color:#fff;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:15px">{{ m.rank }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="border:1px solid #e3e8e6;border-radius:16px;background:#fff;padding:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px">
+            <div style="font-family:var(--font-heading);font-weight:700;font-size:14px;align-self:flex-start">Completion rate</div>
+            <div style="position:relative;width:150px;height:150px">
+              <svg width="150" height="150" viewBox="0 0 150 150">
+                <circle cx="75" cy="75" r="62" fill="none" stroke="#eef1f0" stroke-width="14"></circle>
+                <circle cx="75" cy="75" r="62" fill="none" stroke="#15803d" stroke-width="14" stroke-linecap="round" stroke-dasharray="{{ ringDash }}" transform="rotate(-90 75 75)"></circle>
+              </svg>
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+                <div class="statnum" style="font-family:'IBM Plex Mono',monospace;font-size:34px;color:#14532d">{{ perf.completionRate }}%</div>
+                <div style="font-size:10.5px;color:#8a968f;font-family:'IBM Plex Mono',monospace">{{ perf.completed }}/{{ perf.total }} done</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;width:100%">
+              <div style="flex:1;text-align:center;background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:10px">
+                <div class="statnum" style="font-family:'IBM Plex Mono',monospace;font-size:20px;color:#075985">{{ perf.inProgress }}</div>
+                <div style="font-size:10px;color:#0284c7;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.04em">In progress</div>
+              </div>
+              <div style="flex:1;text-align:center;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px">
+                <div class="statnum" style="font-family:'IBM Plex Mono',monospace;font-size:20px;color:#7f1d1d">{{ perf.overdue }}</div>
+                <div style="font-size:10px;color:#b91c1c;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.04em">Overdue</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="border:1px solid #e3e8e6;border-radius:16px;background:#fff;padding:20px;margin-bottom:8px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px">
+            <div style="font-family:var(--font-heading);font-weight:700;font-size:14px">Weekly progress — completed tasks</div>
+            <div style="font-size:11px;color:#8a968f;font-family:'IBM Plex Mono',monospace">Trailing 8 weeks</div>
+          </div>
+          <svg viewBox="0 0 560 160" width="100%" height="170" preserveAspectRatio="none">
+            <line x1="8" y1="8" x2="552" y2="8" stroke="#f0f3f2" stroke-width="1"></line>
+            <line x1="8" y1="50" x2="552" y2="50" stroke="#f0f3f2" stroke-width="1"></line>
+            <line x1="8" y1="92" x2="552" y2="92" stroke="#f0f3f2" stroke-width="1"></line>
+            <path d="{{ perf.chartArea }}" fill="url(#perfGrad)" stroke="none"></path>
+            <path d="{{ perf.chartPath }}" fill="none" stroke="#2563eb" stroke-width="2.5"></path>
+            <defs><linearGradient id="perfGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2563eb" stop-opacity="0.22"></stop><stop offset="1" stop-color="#2563eb" stop-opacity="0"></stop></linearGradient></defs>
+            <sc-for list="{{ perf.chartPoints }}" as="p" hint-placeholder-count="8">
+              <circle cx="{{ p.x }}" cy="{{ p.y }}" r="3" fill="#fff" stroke="#1e3a8a" stroke-width="2"></circle>
+            </sc-for>
+          </svg>
+          <div style="display:flex;justify-content:space-between;margin-top:6px">
+            <sc-for list="{{ weekLabels }}" as="w" hint-placeholder-count="8">
+              <span style="font-size:10px;color:#96a19d;font-family:'IBM Plex Mono',monospace">{{ w }}</span>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ neverPerfBlock }}" hint-placeholder-val="{{ false }}">
+      </sc-if>
+
+      <sc-if value="{{ showTeamPage }}" hint-placeholder-val="{{ true }}">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:26px">
+          <sc-for list="{{ assignedStats }}" as="c" hint-placeholder-count="2">
+            <div style="border:1px solid {{ c.borderColor }};border-radius:16px;background:{{ c.gradient }};padding:20px 22px;display:flex;align-items:center;gap:16px">
+              <div style="width:52px;height:52px;flex:none;border-radius:14px;background:{{ c.accent }};color:#fff;display:flex;align-items:center;justify-content:center">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9" opacity="0.35"></circle><path d="{{ c.iconPath }}"></path></svg>
+              </div>
+              <div>
+                <div class="statnum" style="font-family:'IBM Plex Mono',monospace;font-size:36px;line-height:1;color:{{ c.darkText }}">{{ c.value }}</div>
+                <div class="kicker" style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:{{ c.accent }};margin-top:6px;font-weight:600">{{ c.label }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{ hasDueSoon }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-bottom:26px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <span style="width:10px;height:10px;border-radius:50%;background:#dc2626"></span>
+            <span style="font-family:var(--font-heading);font-weight:700;font-size:15px;color:#991b1b">Due soon</span>
+            <span style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:#dc2626;background:#fee2e2;padding:2px 9px;border-radius:99px">within 3 days</span>
+            <span style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:#dc2626;background:#fee2e2;padding:2px 9px;border-radius:99px">{{ dueSoonCount }}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ dueSoon }}" as="t" hint-placeholder-count="2">
+              <dc-import name="TaskRowCard" hint-size="100%,84px" task="{{ t }}" band-color="#dc2626"></dc-import>
+            </sc-for>
+          </div>
+        </div>
+        </sc-if>
+        <div style="margin-bottom:26px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <span style="width:10px;height:10px;border-radius:50%;background:#ea9a0c"></span>
+            <span style="font-family:var(--font-heading);font-weight:700;font-size:15px;color:#92400e">Awaiting your review</span>
+            <span style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:#ea9a0c;background:#fef3c7;padding:2px 9px;border-radius:99px">{{ reviewCount }}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ review }}" as="t" hint-placeholder-count="2">
+              <dc-import name="TaskRowCard" hint-size="100%,84px" task="{{ t }}" band-color="#ea9a0c"></dc-import>
+            </sc-for>
+            <sc-if value="{{ noReview }}" hint-placeholder-val="{{ true }}">
+              <div style="border:1px dashed #cdd7d3;border-radius:12px;padding:20px;text-align:center;color:#8a968f;font-size:13px">No tasks are waiting for your review.</div>
+            </sc-if>
+          </div>
+          <sc-if value="{{ reviewShowPager }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:12px">
+              <span style="font-size:12px;color:#5c6a67;margin-right:4px">{{ reviewRangeLabel }}</span>
+              <button onClick="{{ reviewPrev }}" style="{{ reviewPrevStyle }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"></path></svg>
+              </button>
+              <sc-for list="{{ reviewDots }}" as="d" hint-placeholder-count="3">
+                <button onClick="{{ d.go }}" style="{{ d.style }}">{{ d.n }}</button>
+              </sc-for>
+              <button onClick="{{ reviewNext }}" style="{{ reviewNextStyle }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"></path></svg>
+              </button>
+            </div>
+          </sc-if>
+        </div>
+        <div style="margin-bottom:26px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <span style="width:10px;height:10px;border-radius:50%;background:#2563eb"></span>
+            <span style="font-family:var(--font-heading);font-weight:700;font-size:15px;color:#1e3a8a">Tasks you assigned</span>
+            <span style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:#2563eb;background:#dbeafe;padding:2px 9px;border-radius:99px">{{ assignedCount }}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ assigned }}" as="t" hint-placeholder-count="2">
+              <dc-import name="TaskRowCard" hint-size="100%,84px" task="{{ t }}" band-color="#2563eb"></dc-import>
+            </sc-for>
+            <sc-if value="{{ noAssigned }}" hint-placeholder-val="{{ true }}">
+              <div style="border:1px dashed #cdd7d3;border-radius:12px;padding:20px;text-align:center;color:#8a968f;font-size:13px">You haven't assigned any tasks to teammates yet.</div>
+            </sc-if>
+          </div>
+          <sc-if value="{{ assignedShowPager }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:12px">
+              <span style="font-size:12px;color:#5c6a67;margin-right:4px">{{ assignedRangeLabel }}</span>
+              <button onClick="{{ assignedPrev }}" style="{{ assignedPrevStyle }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"></path></svg>
+              </button>
+              <sc-for list="{{ assignedDots }}" as="d" hint-placeholder-count="3">
+                <button onClick="{{ d.go }}" style="{{ d.style }}">{{ d.n }}</button>
+              </sc-for>
+              <button onClick="{{ assignedNext }}" style="{{ assignedNextStyle }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"></path></svg>
+              </button>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showMembersTable }}" hint-placeholder-val="{{ true }}">
+      <div style="font-family:var(--font-heading);font-weight:700;font-size:15px;margin:26px 0 14px">Team members</div>
+      <div style="border:1px solid #e3e8e6;border-radius:14px;overflow:hidden;background:#fff">
+        <div style="display:grid;grid-template-columns:2.2fr 1fr 1fr 1.4fr 0.8fr;gap:12px;padding:12px 18px;background:#f8faf9;border-bottom:1px solid #e3e8e6;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#5c6a67">
+          <div>Member</div><div>Assigned</div><div>Completed</div><div>On-time</div><div style="text-align:right">Late</div>
+        </div>
+        <sc-for list="{{ members }}" as="m" hint-placeholder-count="4">
+          <div style="display:grid;grid-template-columns:2.2fr 1fr 1fr 1.4fr 0.8fr;gap:12px;padding:13px 18px;border-bottom:1px solid #f0f3f2;align-items:center;cursor:pointer" onClick="{{ m.openThis }}" style-hover="background:#f8faf9">
+            <div style="display:flex;align-items:center;gap:11px;min-width:0">
+              <div style="width:34px;height:34px;flex:none;border-radius:50%;background:{{ m.avBg }};color:{{ m.avColor }};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;font-family:'IBM Plex Mono',monospace">{{ m.initials }}</div>
+              <div style="min-width:0">
+                <div style="font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.name }}</div>
+                <div style="font-size:11px;color:#8a968f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.title }}</div>
+              </div>
+            </div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#10201d">{{ m.assignedCount }}</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#15803d">{{ m.completedCount }}</div>
+            <div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="flex:1;height:6px;background:#eef1f0;border-radius:99px;overflow:hidden;max-width:90px"><div style="height:100%;background:{{ m.rateColor }};width:{{ m.onTimeRate }}%"></div></div>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#5c6a67;font-weight:600">{{ m.onTimeRate }}%</span>
+              </div>
+            </div>
+            <div style="text-align:right"><span style="{{ m.lateStyle }}">{{ m.lateCount }}</span></div>
+          </div>
+        </sc-for>
+      </div>
+      <sc-if value="{{ showMemberPagination }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px">
+          <div style="font-size:12px;color:#8a968f;font-family:'IBM Plex Mono',monospace">{{ memberRangeLabel }}</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button style="{{ memberPrevStyle }}" onClick="{{ memberPrev }}" disabled="{{ memberPrevDisabled }}">Prev</button>
+            <sc-for list="{{ memberPages }}" as="pg" hint-placeholder-count="3">
+              <button style="{{ pg.style }}" onClick="{{ pg.go }}">{{ pg.n }}</button>
+            </sc-for>
+            <button style="{{ memberNextStyle }}" onClick="{{ memberNext }}" disabled="{{ memberNextDisabled }}">Next</button>
+          </div>
+        </div>
+      </sc-if>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isMember }}" hint-placeholder-val="{{ false }}">
+    <div>
+      <button class="btn btn-ghost" style="padding:0;margin-bottom:14px" onClick="{{ backToTeam }}">&larr; Back to team</button>
+
+      <div style="position:relative;overflow:hidden;border-radius:20px;background:radial-gradient(120% 160% at 8% 0%,#1e3a8a,#152a63 60%,#0f1f45);color:#fff;padding:28px 30px;margin-bottom:18px">
+        <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);background-size:34px 34px;pointer-events:none"></div>
+        <div style="position:relative;z-index:1;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+          <div style="width:72px;height:72px;flex:none;border-radius:20px;background:linear-gradient(135deg,#3b82f6,#1e3a8a);display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:26px;box-shadow:0 10px 26px rgba(0,0,0,.32)">{{ memberDetail.initials }}</div>
+          <div style="min-width:0;flex:1">
+            <h2 style="margin:0;font-size:25px;color:#fff;letter-spacing:-.01em">{{ memberDetail.name }}</h2>
+            <div style="font-size:13.5px;color:rgba(255,255,255,.66);margin-top:3px">{{ memberDetail.title }}</div>
+            <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.16);padding:4px 11px;border-radius:99px">{{ memberDetail.assignedTotal }} total tasks</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;background:{{ memberDetail.rateChipBg }};color:{{ memberDetail.rateChipColor }};padding:4px 11px;border-radius:99px">{{ memberDetail.onTimeRate }}% on-time</span>
+            </div>
+          </div>
+          <div style="flex:none;width:118px;height:118px;position:relative">
+            <svg width="118" height="118" viewBox="0 0 118 118" style="transform:rotate(-90deg)">
+              <circle cx="59" cy="59" r="50" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="11"></circle>
+              <circle cx="59" cy="59" r="50" fill="none" stroke="#60a5fa" stroke-width="11" stroke-linecap="round" stroke-dasharray="{{ memberDetail.ringDash }}"></circle>
+            </svg>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;line-height:1">{{ memberDetail.onTimeRate }}%</div>
+              <div style="font-size:9.5px;color:rgba(255,255,255,.6);letter-spacing:.06em;text-transform:uppercase;margin-top:3px">On-time</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px">
+        <sc-for list="{{ memberStatCards }}" as="c" hint-placeholder-count="4">
+          <div style="border:1px solid {{ c.border }};border-radius:15px;background:{{ c.bg }};padding:16px 18px;display:flex;align-items:center;gap:13px">
+            <div style="width:42px;height:42px;flex:none;border-radius:12px;background:{{ c.color }};color:#fff;display:flex;align-items:center;justify-content:center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="{{ c.icon }}"></path></svg>
+            </div>
+            <div style="min-width:0">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;line-height:1;color:{{ c.dark }}">{{ c.value }}</div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:{{ c.color }};margin-top:5px;font-weight:600">{{ c.label }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="border:1px solid #e3e8ef;border-radius:16px;background:#fff;overflow:hidden">
+        <div style="padding:15px 20px;border-bottom:1px solid #f0f3f2;font-family:var(--font-heading);font-weight:700;font-size:14.5px">Assigned tasks</div>
+        <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:14px;padding:10px 20px;background:#f8faf9;border-bottom:1px solid #eef1f0;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#8a968f">
+          <div>Task</div><div style="width:120px">Status</div><div style="width:80px">Priority</div><div style="width:70px;text-align:right">Due</div>
+        </div>
+        <sc-for list="{{ memberTasks }}" as="t" hint-placeholder-count="5">
+          <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:14px;padding:13px 20px;border-bottom:1px solid #f4f6f5;align-items:center" style-hover="background:#f8faf9">
+            <div style="font-size:13.5px;font-weight:500;color:#10201d;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.title }}</div>
+            <div style="width:120px"><span class="{{ t.statusTagClass }}">{{ t.statusLabel }}</span></div>
+            <div style="width:80px;text-transform:capitalize;font-size:13px;color:#5c6a67">{{ t.priority }}</div>
+            <div style="width:70px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5c6a67">{{ t.dueLabel }}</div>
+          </div>
+        </sc-for>
+        <sc-if value="{{ memberNoTasks }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:26px;text-align:center;color:#8a968f;font-size:13px">No tasks assigned to this member.</div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const TAGS = { todo: 'badge b-todo', in_progress: 'badge b-progress', submitted: 'badge b-submitted', rejected: 'badge b-rejected', completed: 'badge b-completed' };
+const LABEL = { todo: 'To Do', in_progress: 'In Progress', submitted: 'Submitted', rejected: 'Rejected', completed: 'Completed' };
+function fmtDate(iso) { const d = new Date(iso + 'T00:00:00'); return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+
+const MEDAL = { 1: '#eab308', 2: '#94a3b8', 3: '#c2743a' };
+const RING = { 1: 'linear-gradient(135deg,#f59e0b,#b45309)', 2: 'linear-gradient(135deg,#94a3b8,#64748b)', 3: 'linear-gradient(135deg,#d08a52,#a15c2b)' };
+class Component extends DCLogic {
+  state = { tab: 'team', memberPage: 1, reviewPage: 1, assignedPage: 1, statModal: null };
+  openStatModal = (filter) => this.setState({ statModal: filter });
+  closeStatModal = () => this.setState({ statModal: null });
+  setMemberPage = (n) => this.setState({ memberPage: n });
+  setReviewPage = (n) => this.setState({ reviewPage: n });
+  setAssignedPage = (n) => this.setState({ assignedPage: n });
+  pager(items, page, size, setPage, accent, key) {
+    const pageCount = Math.max(1, Math.ceil(items.length / size));
+    const cur = Math.min(page, pageCount);
+    const start = (cur - 1) * size;
+    const btn = (enabled, active) => `width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid ${active ? accent : '#e3e8e6'};background:${active ? accent : '#fff'};color:${active ? '#fff' : enabled ? '#3d4a47' : '#c2cbc7'};font-family:var(--font-mono);font-size:12px;font-weight:600;cursor:${enabled ? 'pointer' : 'default'}`;
+    const pageDots = Array.from({ length: pageCount }, (_, i) => ({ n: i + 1, style: btn(true, (i + 1) === cur), go: () => setPage(i + 1) }));
+    return {
+      [key]: items.slice(start, start + size),
+      [key + 'Dots']: pageDots,
+      [key + 'ShowPager']: pageCount > 1,
+      [key + 'RangeLabel']: `${start + 1}\u2013${Math.min(start + size, items.length)} of ${items.length}`,
+      [key + 'Prev']: () => setPage(Math.max(1, cur - 1)),
+      [key + 'Next']: () => setPage(Math.min(pageCount, cur + 1)),
+      [key + 'PrevStyle']: btn(cur > 1, false), [key + 'NextStyle']: btn(cur < pageCount, false),
+    };
+  }
+  renderVals() {
+    const p = this.props;
+    const PAGE_SIZE = 6;
+    const memberTasks = (p.memberDetail && p.memberDetail.tasks || []).map(t => ({ ...t, statusTagClass: TAGS[t.status], statusLabel: LABEL[t.status], dueLabel: fmtDate(t.dueDate) }));
+    const md = p.memberDetail || {};
+    const mdCompleted = md.completedCount || 0, mdLate = md.lateCount || 0, mdOpen = md.openCount || 0;
+    const mdRate = mdCompleted > 0 ? Math.round(((mdCompleted - mdLate) / mdCompleted) * 100) : 0;
+    const mdRingC = 2 * Math.PI * 50;
+    const memberDetail = { ...md, assignedTotal: mdOpen + mdCompleted, onTimeRate: mdRate,
+      ringDash: `${(mdRingC * mdRate / 100).toFixed(1)} ${mdRingC.toFixed(1)}`,
+      rateChipBg: mdRate >= 80 ? 'rgba(34,197,94,.22)' : mdRate >= 50 ? 'rgba(234,179,8,.22)' : 'rgba(239,68,68,.22)',
+      rateChipColor: mdRate >= 80 ? '#bbf7d0' : mdRate >= 50 ? '#fde68a' : '#fecaca' };
+    const memberStatCards = [
+      { label: 'Open', value: mdOpen, color: '#0284c7', dark: '#075985', bg: '#f0f9ff', border: '#bae6fd', icon: 'M12 7v5l3 2' },
+      { label: 'Completed', value: mdCompleted, color: '#15803d', dark: '#14532d', bg: '#f0fdf4', border: '#bbf7d0', icon: 'M20 6L9 17l-5-5' },
+      { label: 'Late', value: mdLate, color: '#b91c1c', dark: '#7f1d1d', bg: '#fef2f2', border: '#fecaca', icon: 'M12 8v4M12 16h.01' },
+      { label: 'On-time', value: mdRate + '%', color: '#7c3aed', dark: '#5b21b6', bg: '#f5f3ff', border: '#ddd6fe', icon: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2' },
+    ];
+    const perf = p.teamPerf || {};
+    const onPerf = this.state.tab === 'perf';
+    const wantTabs = !!p.withPerf || !!p.isUser;
+    const tabStyle = (on) => `padding:8px 16px;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:12.5px;font-family:var(--font-body);background:${on ? '#fff' : 'transparent'};color:${on ? '#1e3a8a' : '#8a968f'};box-shadow:${on ? '0 1px 2px rgba(0,0,0,.08)' : 'none'}`;
+    const perfStats = [
+      { label: 'Total tasks', value: perf.total || 0, filter: 'all', color: '#2563eb', darkText: '#1e3a8a', gradient: 'linear-gradient(135deg,#eff6ff,#dbeafe)', borderColor: '#bfdbfe', iconPath: 'M9 6h11M9 12h11M9 18h11' },
+      { label: 'Completed', value: perf.completed || 0, filter: 'completed', color: '#15803d', darkText: '#14532d', gradient: 'linear-gradient(135deg,#f0fdf4,#dcfce7)', borderColor: '#bbf7d0', iconPath: 'M20 6L9 17l-5-5' },
+      { label: 'In progress', value: perf.inProgress || 0, filter: 'in_progress', color: '#0284c7', darkText: '#075985', gradient: 'linear-gradient(135deg,#f0f9ff,#e0f2fe)', borderColor: '#bae6fd', iconPath: 'M12 7v5l3 2' },
+      { label: 'Overdue', value: perf.overdue || 0, filter: 'overdue', color: '#b91c1c', darkText: '#7f1d1d', gradient: 'linear-gradient(135deg,#fef2f2,#fee2e2)', borderColor: '#fecaca', iconPath: 'M12 8v4M12 16h.01' },
+    ];
+    const barH = { 1: '96px', 2: '68px', 3: '48px' };
+    const podium = (perf.podium || []).map(m => ({ ...m, medalColor: MEDAL[m.rank], ringColor: RING[m.rank], barColor: RING[m.rank], barHeight: barH[m.rank], avatarSize: m.rank === 1 ? '76px' : '62px', avatarFont: m.rank === 1 ? '22px' : '18px' }));
+    const perfStatsClickable = perfStats.map(c => ({ ...c, openThis: () => this.openStatModal(c.filter) }));
+    const allPerfTasks = p.perfTasks || [];
+    const sm = this.state.statModal;
+    const MTITLE = { all: 'All tasks', completed: 'Completed tasks', in_progress: 'In-progress tasks', overdue: 'Overdue tasks' };
+    const modalTasks = sm ? (sm === 'all' ? allPerfTasks : sm === 'overdue' ? allPerfTasks.filter(t => t.overdue) : allPerfTasks.filter(t => t.status === sm)).slice().sort((a, b) => a.dueDate.localeCompare(b.dueDate)).map(t => ({ ...t, statusTagClass: TAGS[t.status], statusLabel: LABEL[t.status], dueLabel: fmtDate(t.dueDate), assigneeSummary: (t.assigneeNames && t.assigneeNames.length ? (t.assigneeNames.length > 1 ? t.assigneeNames[0] + ' +' + (t.assigneeNames.length - 1) : t.assigneeNames[0]) : '—') })) : [];
+    const reviewQueue = p.reviewQueue || [];
+    return {
+      isList: p.drill === 'list', isTeam: p.drill === 'team', isMember: p.drill === 'member',
+      canAddTask: !!p.canAddTask, onNewTaskHere: () => p.onNewTask && p.onNewTask(),
+      teamList: (p.teamList || []).map(t => ({ ...t, badge: (t.name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(), lateBg: (t.late > 0) ? '#fef2f2' : '#f8faf9', lateBorder: (t.late > 0) ? '#fecaca' : '#e3e8ef', lateColor: (t.late > 0) ? '#b91c1c' : '#8a968f' })),
+      memberDetail, memberStatCards, memberNoTasks: memberTasks.length === 0,
+      backToList: p.backToList, backToTeam: p.backToTeam,
+      isUser: !!p.isUser, showBackToList: !p.isUser,
+      teamHeading: p.isUser ? ((p.teamDetail && p.teamDetail.name ? p.teamDetail.name : '') + ' — My Team') : (p.teamDetail && p.teamDetail.name),
+      reviewCount: reviewQueue.length, noReview: reviewQueue.length === 0,
+      ...this.pager(reviewQueue, this.state.reviewPage, 4, this.setReviewPage, '#ea9a0c', 'review'),
+      assignedStats: p.assignedStats || [],
+      dueSoon: p.dueSoon || [], hasDueSoon: (p.dueSoon || []).length > 0, dueSoonCount: (p.dueSoon || []).length,
+      assignedCount: (p.assignedList || []).length, noAssigned: (p.assignedList || []).length === 0,
+      ...this.pager(p.assignedList || [], this.state.assignedPage, 4, this.setAssignedPage, '#2563eb', 'assigned'),
+      showMyTeam: () => this.setState({ tab: 'team' }), showPerf: () => this.setState({ tab: 'perf' }),
+      tabMyTeamStyle: tabStyle(!onPerf), tabPerfStyle: tabStyle(onPerf),
+      showTabs: wantTabs, overviewTabLabel: p.isUser ? 'My Team' : 'Overview',
+      showPerfPage: wantTabs && onPerf, showTeamPage: !wantTabs || !onPerf,
+      showMembersTable: !wantTabs || onPerf,
+      perf, perfStats: perfStatsClickable, podium, neverPerfBlock: false,
+      showStatModal: !!sm, modalTasks, modalTitle: MTITLE[sm] || '', modalCount: modalTasks.length,
+      noModalTasks: modalTasks.length === 0, closeStatModal: this.closeStatModal, stopModal: (e) => e.stopPropagation(),
+      ringDash: (() => { const r = 62, circ = 2 * Math.PI * r, pct = perf.total ? (perf.completed / perf.total) : 0; return `${(circ * pct).toFixed(1)} ${circ.toFixed(1)}`; })(),
+      weekLabels: ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'Now'],
+      ...(() => {
+        const all = ((p.teamDetail && p.teamDetail.members) || []).map(m => ({
+          ...m,
+          avBg: m.completedCount > 0 ? '#dbeafe' : '#eef1f0', avColor: m.completedCount > 0 ? '#1e3a8a' : '#5c6a67',
+          rateColor: m.onTimeRate >= 75 ? '#15803d' : m.onTimeRate >= 40 ? '#d97706' : '#b91c1c',
+          lateStyle: m.lateCount > 0 ? 'font-family:\'IBM Plex Mono\',monospace;font-size:11.5px;font-weight:600;color:#b91c1c;background:#fee2e2;padding:2px 8px;border-radius:99px' : 'font-family:\'IBM Plex Mono\',monospace;font-size:12px;color:#96a19d',
+        }));
+        const pageCount = Math.max(1, Math.ceil(all.length / PAGE_SIZE));
+        const page = Math.min(this.state.memberPage, pageCount);
+        const start = (page - 1) * PAGE_SIZE;
+        const pages = Array.from({ length: pageCount }, (_, i) => ({
+          n: i + 1, active: (i + 1) === page,
+          go: () => this.setMemberPage(i + 1),
+          style: `min-width:30px;height:30px;padding:0 8px;border-radius:8px;border:1px solid ${(i + 1) === page ? '#1e3a8a' : '#e3e8e6'};background:${(i + 1) === page ? '#1e3a8a' : '#fff'};color:${(i + 1) === page ? '#fff' : '#5c6a67'};font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;cursor:pointer`,
+        }));
+        return {
+          members: all.slice(start, start + PAGE_SIZE),
+          memberPages: pages,
+          showMemberPagination: pageCount > 1,
+          memberRangeLabel: `${start + 1}\u2013${Math.min(start + PAGE_SIZE, all.length)} of ${all.length}`,
+          memberPrev: () => this.setMemberPage(Math.max(1, page - 1)),
+          memberNext: () => this.setMemberPage(Math.min(pageCount, page + 1)),
+          memberPrevDisabled: page <= 1, memberNextDisabled: page >= pageCount,
+          memberPrevStyle: `padding:0 12px;height:30px;border-radius:8px;border:1px solid #e3e8e6;background:#fff;color:${page <= 1 ? '#c2cbc8' : '#5c6a67'};font-size:12.5px;font-weight:600;cursor:${page <= 1 ? 'default' : 'pointer'}`,
+          memberNextStyle: `padding:0 12px;height:30px;border-radius:8px;border:1px solid #e3e8e6;background:#fff;color:${page >= pageCount ? '#c2cbc8' : '#5c6a67'};font-size:12.5px;font-weight:600;cursor:${page >= pageCount ? 'default' : 'pointer'}`,
+        };
+      })(),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

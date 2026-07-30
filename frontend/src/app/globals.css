@@ -1,0 +1,700 @@
+@import "tailwindcss";
+
+:root {
+  --font-heading: var(--font-plex-sans), system-ui, sans-serif;
+  --font-body: var(--font-plex-sans), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+
+  /* Fintech retheme — trustworthy deep navy on a cool paper ground */
+  --color-bg: #f5f7fb;
+  --color-surface: #eaeef5;
+  --color-text: #0f2038;
+  --color-text-muted: #5c6a67;
+  --color-divider: #e3e8e6;
+
+  --color-accent: #2563eb;
+  --color-accent-100: #dbeafe;
+  --color-accent-200: #bfdbfe;
+  --color-accent-300: #93c5fd;
+  --color-accent-400: #60a5fa;
+  --color-accent-500: #3b82f6;
+  --color-accent-600: #2563eb;
+  --color-accent-700: #1d4ed8;
+  --color-accent-800: #1e3a8a;
+  --color-accent-900: #172554;
+
+  --color-success: #15803d;
+  --color-success-bg: #dcfce7;
+  --color-success-border: #bbf7d0;
+  --color-success-text: #15803d;
+
+  --color-danger: #b91c1c;
+  --color-danger-bg: #fee2e2;
+  --color-danger-border: #fca5a5;
+
+  --color-warning: #b45309;
+  --color-warning-bg: #fef3c7;
+  --color-warning-border: #fcd34d;
+
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --shadow-sm: 0 1px 2px rgba(10, 30, 26, 0.08);
+  --shadow-md: 0 6px 18px rgba(10, 30, 26, 0.1);
+  --shadow-lg: 0 16px 44px rgba(10, 30, 26, 0.18);
+}
+
+@theme inline {
+  /* --color-bg/-surface/-text/-accent used to be declared here too, each as
+     `var(--color-x): var(--color-x)` — the exact same self-reference bug as
+     --font-mono below. Dropped rather than fixed: nothing in this codebase
+     consumes the bg-bg/text-accent/etc. Tailwind utilities those would have
+     generated (grep confirms zero usages), so they were dead weight, not a
+     visible bug like --font-mono was. */
+  --font-sans: var(--font-body);
+  /* NOT `var(--font-mono)` — that's the same custom property name as this
+     one, so it's a self-reference: per spec it's guaranteed-invalid, and
+     because this block compiles to :root and comes after the real
+     :root { --font-mono: ... } above, it clobbered it — every font-mono
+     utility and every `font-family: var(--font-mono)` rule (.kicker,
+     .stat-num, badges, timestamps, stat cards, etc.) was silently falling
+     back to the inherited body font instead of IBM Plex Mono. */
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-divider);
+  border-radius: 4px;
+}
+
+/* Sidebar nav scroll thumb — translucent white so it blends into the dark
+   navy sidebar instead of the page's light-gray scrollbar sticking out. */
+.side-nav {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+.side-nav::-webkit-scrollbar {
+  width: 6px;
+}
+.side-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+.side-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 99px;
+}
+.side-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.kicker,
+.stat-num {
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+.stat-num {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* Badges — status/priority pills, dot + label */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  padding: 4px 9px;
+  border: 1px solid transparent;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border-radius: 999px;
+}
+.badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.9;
+}
+.b-todo {
+  background: #eef1f0;
+  color: #5c6a67;
+  border-color: var(--color-divider);
+}
+.b-todo::before {
+  background: #96a19d;
+}
+.b-progress,
+.b-submitted {
+  background: var(--color-accent-100);
+  color: #1e40af;
+  border-color: var(--color-accent-200);
+}
+.b-progress::before,
+.b-submitted::before {
+  background: var(--color-accent);
+}
+.b-rejected {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-color: var(--color-danger-border);
+}
+.b-rejected::before {
+  background: var(--color-danger);
+}
+.b-completed {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border-color: var(--color-success-border);
+}
+.b-completed::before {
+  background: var(--color-success);
+}
+.b-overdue {
+  background: #fff;
+  color: var(--color-danger);
+  border-color: var(--color-danger-border);
+}
+.b-overdue::before {
+  background: var(--color-danger);
+}
+.lvl-high {
+  background: #fef0f0;
+  color: #d15656;
+  border-color: #f6cccc;
+}
+.lvl-high::before {
+  background: #e07a7a;
+}
+.lvl-med {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border-color: var(--color-warning-border);
+}
+.lvl-med::before {
+  background: #f59e0b;
+}
+.lvl-low {
+  background: #eef1f0;
+  color: #5c6a67;
+  border-color: var(--color-divider);
+}
+.lvl-low::before {
+  background: #96a19d;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 9px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 13.5px;
+  padding: 9px 16px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.btn:active {
+  transform: translateY(0) scale(0.96);
+}
+.btn-primary {
+  background: var(--color-accent);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: var(--color-accent-700);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.28);
+}
+.btn-secondary {
+  background: #fff;
+  border-color: #d7dedb;
+  color: #3d4a47;
+}
+.btn-secondary:hover {
+  background: #f8faf9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 32, 29, 0.1);
+}
+.btn-success {
+  background: var(--color-success);
+  color: #fff;
+}
+.btn-success:hover {
+  background: var(--color-success-text);
+  transform: translateY(-1px);
+}
+.btn-danger {
+  background: #fff;
+  border-color: var(--color-danger-border);
+  color: var(--color-danger);
+}
+.btn-danger:hover {
+  background: var(--color-danger-bg);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Cards / surfaces */
+.card {
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  transition: box-shadow 0.2s ease, transform 0.18s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.input {
+  border-radius: 9px;
+  background: #fff;
+  border: 1px solid #d7dedb;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+  font-size: 14px;
+  padding: 9px 12px;
+  color: var(--color-text);
+}
+.input:focus-visible,
+.input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+.lg-field {
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+.lg-field:focus-within {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.14);
+  background: #fff !important;
+}
+
+.navlink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 9px;
+  font-weight: 500;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, padding-left 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), letter-spacing 0.2s ease;
+}
+.navlink:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+  padding-left: 18px;
+  letter-spacing: 0.02em;
+}
+.navlink:active {
+  transform: scale(0.97);
+}
+.navlink.active {
+  background: rgba(255, 255, 255, 0.13);
+  color: #fff;
+  box-shadow: inset 3px 0 0 #60a5fa;
+}
+.navlink svg {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.navlink:hover svg {
+  transform: scale(1.14);
+}
+.navlink.active svg {
+  transform: scale(1.08);
+}
+
+/* ---------- Motion: page/section entrances ---------- */
+@keyframes view-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.view-anim {
+  /* No fill-mode: once the animation ends, `transform` must fully clear back
+     to `none` — otherwise this ancestor becomes the containing block for any
+     `position: fixed` descendant (task drawer, dialogs), and they end up
+     covering only this box instead of the real viewport. */
+  animation: view-in 0.32s cubic-bezier(0.22, 0.7, 0.3, 1);
+}
+@keyframes stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.view-anim > * {
+  /* `backwards` only (not `both`/`forwards`) — holds the opacity:0 start
+     state during each child's stagger delay, but fully releases `transform`
+     once the animation ends so this can't become a fixed-position containing
+     block either (same reasoning as .view-anim above). */
+  animation: stagger-in 0.4s cubic-bezier(0.22, 0.7, 0.3, 1) backwards;
+}
+.view-anim > *:nth-child(2) {
+  animation-delay: 0.04s;
+}
+.view-anim > *:nth-child(3) {
+  animation-delay: 0.08s;
+}
+.view-anim > *:nth-child(4) {
+  animation-delay: 0.12s;
+}
+.view-anim > *:nth-child(5) {
+  animation-delay: 0.16s;
+}
+.view-anim > *:nth-child(n + 6) {
+  animation-delay: 0.2s;
+}
+
+/* ---------- Motion: overlays (backdrop / dialog / drawer) ---------- */
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+@keyframes drawer-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.backdrop-anim {
+  animation: backdrop-in 0.18s ease;
+}
+.dialog-anim {
+  /* backwards, not both/forwards — a lingering transform here would make
+     this panel a fixed-position containing block for anything nested in it */
+  animation: dialog-in 0.22s cubic-bezier(0.22, 0.7, 0.3, 1) backwards;
+}
+.drawer-anim {
+  animation: drawer-in 0.24s cubic-bezier(0.22, 0.7, 0.3, 1) backwards;
+}
+.pop-anim {
+  animation: pop-in 0.2s cubic-bezier(0.22, 0.7, 0.3, 1) backwards;
+}
+
+/* ---------- Motion: micro-interactions ---------- */
+@keyframes bell-shake {
+  0%, 100% {
+    transform: rotate(0);
+  }
+  15% {
+    transform: rotate(14deg);
+  }
+  30% {
+    transform: rotate(-12deg);
+  }
+  45% {
+    transform: rotate(9deg);
+  }
+  60% {
+    transform: rotate(-6deg);
+  }
+  75% {
+    transform: rotate(3deg);
+  }
+}
+.bell-btn:hover .bell-glyph {
+  animation: bell-shake 0.7s ease both;
+  transform-origin: 50% 12%;
+}
+
+@keyframes star-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.28) rotate(-8deg);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.star-btn:hover .star-ic {
+  animation: star-pop 0.5s ease both;
+}
+
+@keyframes icon-wiggle {
+  0%, 100% {
+    transform: rotate(0);
+  }
+  30% {
+    transform: rotate(-12deg);
+  }
+  70% {
+    transform: rotate(12deg);
+  }
+}
+.row-edit:hover .edit-glyph {
+  animation: icon-wiggle 0.5s ease both;
+}
+
+@keyframes trash-lid {
+  0%, 100% {
+    transform: translateY(0) rotate(0);
+  }
+  40% {
+    transform: translateY(-2px) rotate(-14deg);
+  }
+}
+.row-del:hover .del-glyph {
+  animation: trash-lid 0.5s ease both;
+  transform-origin: 70% 30%;
+}
+
+@keyframes plane-launch {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  45% {
+    transform: translate(4px, -4px) rotate(14deg);
+  }
+  70% {
+    transform: translate(-1.5px, 1px) rotate(-6deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+.row-nudge:hover .nudge-glyph {
+  animation: plane-launch 0.55s ease both;
+}
+
+@keyframes logo-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.85;
+  }
+}
+.logo-mark:hover .logo-ring {
+  animation: logo-pulse 1.2s ease infinite;
+}
+
+@keyframes float-y {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+@keyframes orb-drift {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(20px, -24px) scale(1.08);
+  }
+}
+@keyframes grid-pan {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 44px 44px;
+  }
+}
+@keyframes ring-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes typing-caret {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Login hero — staggered fade-up entrance for the four content blocks */
+@keyframes fade-up-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.hero-in-1 {
+  animation: fade-up-in 0.6s cubic-bezier(0.22, 0.7, 0.3, 1) backwards;
+}
+.hero-in-2 {
+  animation: fade-up-in 0.6s cubic-bezier(0.22, 0.7, 0.3, 1) 0.08s backwards;
+}
+.hero-in-3 {
+  animation: fade-up-in 0.6s cubic-bezier(0.22, 0.7, 0.3, 1) 0.16s backwards;
+}
+.hero-in-4 {
+  animation: fade-up-in 0.6s cubic-bezier(0.22, 0.7, 0.3, 1) 0.24s backwards;
+}
+.hero-grid {
+  animation: grid-pan 8s linear infinite;
+}
+.hero-orb-a {
+  animation: orb-drift 11s ease-in-out infinite;
+}
+.hero-orb-b {
+  animation: orb-drift 13s ease-in-out infinite reverse;
+}
+.hero-spotlight {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.hero-panel:hover .hero-spotlight {
+  opacity: 1;
+}
+.hero-mark {
+  transition: opacity 0.3s ease, transform 0.2s ease;
+}
+.hero-panel:hover .hero-mark {
+  opacity: 0.12;
+}
+.hero-logo:hover .hero-ring {
+  animation: ring-draw 1s ease;
+}
+.typing-caret {
+  animation: typing-caret 0.9s step-start infinite;
+}
+
+/* How-to hero — panning grid backdrop + a single slow-floating orb */
+.ht-grid {
+  animation: grid-pan 9s linear infinite;
+}
+.ht-orb {
+  animation: float-y 8s ease-in-out infinite;
+}
+
+/* How-to "getting started" step cards — lift + icon spin on hover */
+.ht-step {
+  transition: transform 0.18s ease, box-shadow 0.2s ease, border-color 0.18s ease;
+}
+.ht-step:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 34px rgba(16, 32, 29, 0.12);
+  border-color: #c7d2fe;
+}
+.ht-num {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.ht-step:hover .ht-num {
+  transform: scale(1.08) rotate(-4deg);
+}
+.quick-link {
+  color: #3d4a47;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.quick-link:hover {
+  background: #f4f7fb;
+  color: #2563eb;
+}
+
+button {
+  transition: transform 0.12s ease, box-shadow 0.16s ease, background 0.16s ease, border-color 0.16s ease;
+}
+input,
+textarea,
+select {
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

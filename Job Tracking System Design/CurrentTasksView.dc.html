@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/industry-feb92b32-f7a6-4366-a007-a629b2f673f7/styles.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+.band-act{position:relative;margin-left:auto;width:38px;height:38px;border:none;border-radius:11px;color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:transform .14s ease,box-shadow .2s ease,filter .15s ease}
+.band-act:hover{transform:translateY(-2px) scale(1.05);box-shadow:0 8px 18px rgba(10,30,26,.22);filter:brightness(1.06)}
+.band-act:active{transform:scale(.95)}
+.band-act svg{transition:transform .2s cubic-bezier(.34,1.56,.64,1)}
+.band-act:hover svg{transform:scale(1.15)}
+.band-act::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 9px);right:0;white-space:nowrap;background:#0f2038;color:#fff;font-family:'IBM Plex Sans',sans-serif;font-size:11.5px;font-weight:500;padding:6px 10px;border-radius:8px;opacity:0;transform:translateY(4px);pointer-events:none;transition:opacity .16s ease,transform .16s ease;box-shadow:0 6px 16px rgba(10,30,26,.24);z-index:5}
+.band-act::before{content:'';position:absolute;bottom:calc(100% + 4px);right:14px;border:5px solid transparent;border-top-color:#0f2038;opacity:0;transition:opacity .16s ease;z-index:5}
+.band-act:hover::after,.band-act:hover::before{opacity:1;transform:translateY(0)}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:22px;max-width:1180px">
+
+  <sc-if value="{{ showSummary }}" hint-placeholder-val="{{ true }}">
+  <div style="display:grid;grid-template-columns:repeat({{ bandCount }},minmax(0,1fr));gap:20px">
+    <sc-for list="{{ summaryCards }}" as="c" hint-placeholder-count="2">
+      <div style="border:1px solid {{ c.borderColor }};border-radius:16px;background:{{ c.gradient }};padding:22px 24px;display:flex;align-items:center;gap:18px">
+        <div style="width:56px;height:56px;flex:none;border-radius:14px;background:{{ c.accent }};color:#fff;display:flex;align-items:center;justify-content:center">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="{{ c.iconPath }}"></path></svg>
+        </div>
+        <div>
+          <div class="statnum" style="font-family:'IBM Plex Mono',monospace;font-size:40px;line-height:1;color:{{ c.darkText }}">{{ c.count }}</div>
+          <div class="kicker" style="font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:{{ c.accent }};margin-top:6px;font-weight:600">{{ c.label }}</div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  </sc-if>
+
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div style="position:relative;flex:1;min-width:220px">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.5"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4-4"></path></svg>
+      <input class="input" style="padding-left:34px" placeholder="Search task name…" value="{{ query }}" onChange="{{ onQuery }}"/>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span style="font-size:12px;color:#5c6a67;font-weight:500">Due</span>
+      <input class="input" type="date" style="width:auto" value="{{ fromDate }}" onChange="{{ onFrom }}"/>
+      <span style="font-size:12px;color:#8a968f">→</span>
+      <input class="input" type="date" style="width:auto" value="{{ toDate }}" onChange="{{ onTo }}"/>
+    </div>
+    <sc-if value="{{ hasFilter }}" hint-placeholder-val="{{ false }}">
+      <button class="btn btn-secondary" onClick="{{ clearFilter }}">Clear</button>
+    </sc-if>
+  </div>
+
+  <sc-for list="{{ bands }}" as="b" hint-placeholder-count="2">
+    <div>
+      <sc-if value="{{ showSummary }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="width:10px;height:10px;border-radius:50%;background:{{ b.accent }}"></span>
+        <span style="font-family:var(--font-heading);font-weight:700;font-size:15px;color:{{ b.darkText }}">{{ b.label }}</span>
+        <span style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:{{ b.accent }};background:{{ b.pillBg }};padding:2px 9px;border-radius:99px">{{ b.count }}</span>
+        <sc-if value="{{ b.showAction }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ b.onAction }}" class="band-act" data-tip="{{ b.actionLabel }}" title="{{ b.actionLabel }}" aria-label="{{ b.actionLabel }}" style="background:{{ b.accent }}">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="display:block"><path d="{{ b.actionIcon }}"></path></svg>
+          </button>
+        </sc-if>
+      </div>
+      </sc-if>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <sc-if value="{{ b.hasRows }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;align-items:center;gap:16px;padding:9px 18px;background:{{ b.headBg }};border:1px solid {{ b.headBorder }};border-radius:10px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:{{ b.darkText }}">
+            <div style="flex:1;min-width:0">Task</div>
+            <div style="width:132px;flex:none">Priority · Impact</div>
+            <div style="width:110px;flex:none;text-align:right">Due date</div>
+            <div style="width:68px;flex:none"></div>
+          </div>
+        </sc-if>
+        <sc-for list="{{ b.pageTasks }}" as="t" hint-placeholder-count="3">
+          <dc-import name="TaskRowCard" hint-size="100%,84px" task="{{ t }}" band-color="{{ b.accent }}"></dc-import>
+        </sc-for>
+        <sc-if value="{{ b.empty }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1px dashed #cdd7d3;border-radius:12px;padding:22px;text-align:center;color:#8a968f;font-size:13px">{{ b.emptyText }}</div>
+        </sc-if>
+        <sc-if value="{{ b.emptyFiltered }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1px dashed #cdd7d3;border-radius:12px;padding:22px;text-align:center;color:#8a968f;font-size:13px">No tasks match your search.</div>
+        </sc-if>
+      </div>
+      <sc-if value="{{ b.showPager }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:12px">
+          <span style="font-size:12px;color:#5c6a67;margin-right:4px">{{ b.rangeLabel }}</span>
+          <button onClick="{{ b.prev }}" style="{{ b.prevStyle }}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"></path></svg>
+          </button>
+          <sc-for list="{{ b.pageDots }}" as="d" hint-placeholder-count="3">
+            <button onClick="{{ d.go }}" style="{{ d.style }}">{{ d.n }}</button>
+          </sc-for>
+          <button onClick="{{ b.next }}" style="{{ b.nextStyle }}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"></path></svg>
+          </button>
+        </div>
+      </sc-if>
+    </div>
+  </sc-for>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const PAGE_SIZE = 4;
+class Component extends DCLogic {
+  state = { pages: {}, query: '', fromDate: '', toDate: '' };
+  setPage(key, n) { this.setState(s => ({ pages: { ...s.pages, [key]: n } })); }
+  onQuery = (e) => this.setState({ query: e.target.value, pages: {} });
+  onFrom = (e) => this.setState({ fromDate: e.target.value, pages: {} });
+  onTo = (e) => this.setState({ toDate: e.target.value, pages: {} });
+  clearFilter = () => this.setState({ query: '', fromDate: '', toDate: '', pages: {} });
+  renderVals() {
+    const { query, fromDate, toDate } = this.state;
+    const q = query.trim().toLowerCase();
+    const match = (t) => {
+      if (q && !(t.title || '').toLowerCase().includes(q)) return false;
+      if (fromDate && (t.dueDate || '') < fromDate) return false;
+      if (toDate && (t.dueDate || '') > toDate) return false;
+      return true;
+    };
+    const defs = this.props.bands || [];
+    const bands = defs.map(def => {
+      const rawTasks = def.tasks || [];
+      const tasks = rawTasks.filter(match);
+      const pageCount = Math.max(1, Math.ceil(tasks.length / PAGE_SIZE));
+      let page = this.state.pages[def.key] || 0;
+      if (page > pageCount - 1) page = pageCount - 1;
+      const start = page * PAGE_SIZE;
+      const pageTasks = tasks.slice(start, start + PAGE_SIZE);
+      const btn = (enabled, active) => `width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid ${active ? def.accent : '#e3e8e6'};background:${active ? def.accent : '#fff'};color:${active ? '#fff' : enabled ? '#3d4a47' : '#c2cbc7'};font-family:var(--font-mono);font-size:12px;font-weight:600;cursor:${enabled ? 'pointer' : 'default'}`;
+      const pageDots = Array.from({ length: pageCount }, (_, i) => ({ n: i + 1, style: btn(true, i === page), go: () => this.setPage(def.key, i) }));
+      const filtering = !!(q || fromDate || toDate);
+      return {
+        ...def, count: tasks.length,
+        empty: rawTasks.length === 0,
+        emptyFiltered: rawTasks.length > 0 && tasks.length === 0,
+        pageTasks, showPager: tasks.length > PAGE_SIZE, pageDots, hasRows: pageTasks.length > 0,
+        headBg: def.pillBg, headBorder: def.borderColor,
+        showAction: !!(def.actionLabel && tasks.length && !filtering), actionIcon: def.actionIcon || 'M8 5v14l11-7z',
+        rangeLabel: `${start + 1}–${Math.min(start + PAGE_SIZE, tasks.length)} of ${tasks.length}`,
+        prev: () => this.setPage(def.key, Math.max(0, page - 1)),
+        next: () => this.setPage(def.key, Math.min(pageCount - 1, page + 1)),
+        prevStyle: btn(page > 0, false), nextStyle: btn(page < pageCount - 1, false),
+      };
+    });
+    return {
+      bands, bandCount: bands.length, showSummary: !this.props.plain,
+      summaryCards: bands.map(b => ({ label: b.label, count: b.count, accent: b.accent, gradient: b.gradient, borderColor: b.borderColor, darkText: b.darkText, iconPath: b.iconPath })),
+      query, fromDate, toDate, onQuery: this.onQuery, onFrom: this.onFrom, onTo: this.onTo,
+      hasFilter: !!(q || fromDate || toDate), clearFilter: this.clearFilter,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

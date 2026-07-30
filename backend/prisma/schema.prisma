@@ -1,0 +1,299 @@
+// BJC Trackline — Prisma schema
+// Models the domain described in bjc-trackline-overview.md and the
+// Job Tracking System Design prototype (data.js).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Level {
+  low
+  medium
+  high
+}
+
+enum TaskStatus {
+  todo
+  in_progress
+  submitted
+  rejected
+  completed
+}
+
+enum TaskLogAction {
+  created
+  started
+  submitted
+  cancelled
+  rejected
+  approved
+  reworked
+  archived
+  commented
+}
+
+enum ConversationKind {
+  team
+  dm
+}
+
+enum NotificationType {
+  assigned
+  rejected
+  approved
+  comment
+  nudged
+}
+
+enum TorStatus {
+  pending_chief_approval
+  tor
+  bidding
+  pta
+  pr
+  po
+  completed
+}
+
+model Team {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  members       User[]
+  tasks         Task[]
+  conversation  Conversation?
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  username     String?  @unique
+  passwordHash String
+  title        String?
+  isAdmin      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  team   Team?   @relation(fields: [teamId], references: [id])
+  teamId String?
+
+  assignedTasks   TaskAssignee[]
+  createdTasks    Task[]           @relation("TaskCreatedBy")
+  subtasks        Subtask[]
+  logEntries      TaskLogEntry[]
+  attachments     Attachment[]
+  starredTasks    StarredTask[]
+  notifications   Notification[]
+  sentMessages    Message[]
+  conversationReads ConversationRead[]
+  dmConversationsA Conversation[] @relation("ConversationDmUserA")
+  dmConversationsB Conversation[] @relation("ConversationDmUserB")
+  torRequests     TorRequest[]     @relation("TorRequester")
+  torReviews      TorRequest[]     @relation("TorReviewer")
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  title       String
+  description String?    @db.Text
+  priority    Level
+  impact      Level
+  status      TaskStatus @default(todo)
+  archived    Boolean    @default(false)
+
+  // tri-state: true = late, false = on time, null = not yet actioned
+  late Boolean?
+
+  team   Team   @relation(fields: [teamId], references: [id])
+  teamId String
+
+  createdBy   User   @relation("TaskCreatedBy", fields: [createdById], references: [id])
+  createdById String
+
+  dueDate       DateTime
+  createdDate   DateTime  @default(now())
+  submittedDate DateTime?
+  reviewDate    DateTime?
+  rejectReason  String?
+
+  assignees   TaskAssignee[]
+  subtasks    Subtask[]
+  log         TaskLogEntry[]
+  attachments Attachment[]
+  starredBy   StarredTask[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([teamId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model TaskAssignee {
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  // Set when the task owner "nudges" this assignee to follow up; cleared when
+  // the assignee dismisses the resulting badge on their Current Tasks page.
+  nudgedAt DateTime?
+
+  @@id([taskId, userId])
+}
+
+model Subtask {
+  id          String     @id @default(cuid())
+  title       String
+  description String?    @db.Text
+  status      TaskStatus @default(todo)
+
+  // tri-state: true = late, false = on time, null = not yet actioned
+  late Boolean?
+
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId String
+
+  assignee   User?   @relation(fields: [assigneeId], references: [id])
+  assigneeId String?
+
+  // falls back to the parent task's dueDate when null
+  dueDate       DateTime?
+  submittedDate DateTime?
+  reviewDate    DateTime?
+  rejectReason  String?
+
+  log TaskLogEntry[]
+}
+
+model TaskLogEntry {
+  id     String        @id @default(cuid())
+  ts     DateTime      @default(now())
+  action TaskLogAction
+  note   String?
+
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId String
+
+  subtask   Subtask? @relation(fields: [subtaskId], references: [id], onDelete: Cascade)
+  subtaskId String?
+
+  by   User   @relation(fields: [byId], references: [id])
+  byId String
+
+  @@index([taskId])
+  @@index([subtaskId])
+}
+
+model Attachment {
+  id         String   @id @default(cuid())
+  name       String
+  // R2 object key — the bucket is private; download URLs are signed on demand
+  key        String
+  uploadedAt DateTime @default(now())
+
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId String
+
+  uploadedBy   User   @relation(fields: [uploadedById], references: [id])
+  uploadedById String
+}
+
+model StarredTask {
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId String
+  starredAt DateTime @default(now())
+
+  @@id([userId, taskId])
+}
+
+model TorRequest {
+  id          String    @id @default(cuid())
+  project     String
+  code        String    @unique
+  dept        String
+  amount      Decimal   @db.Decimal(14, 2)
+  openedDate  DateTime
+  status      TorStatus
+  step        Int       // 0 pending chief approval, 1 TOR, 2 Bidding, 3 PTA, 4 PR, 5 PO, 6 Completed
+  comment     String?
+  // whether the most recent chief review was a rejection (comment reflects that review either way)
+  rejected    Boolean   @default(false)
+
+  requester   User   @relation("TorRequester", fields: [requesterId], references: [id])
+  requesterId String
+
+  reviewer   User?   @relation("TorReviewer", fields: [reviewerId], references: [id])
+  reviewerId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Conversation {
+  id   String           @id @default(cuid())
+  kind ConversationKind
+
+  // team channel — one conversation per team
+  team   Team?   @relation(fields: [teamId], references: [id])
+  teamId String? @unique
+
+  // DM — two fixed participants (dmUserAId always the lexicographically
+  // smaller id, enforced app-side) so a pair maps to exactly one conversation
+  dmUserA   User?   @relation("ConversationDmUserA", fields: [dmUserAId], references: [id])
+  dmUserAId String?
+  dmUserB   User?   @relation("ConversationDmUserB", fields: [dmUserBId], references: [id])
+  dmUserBId String?
+
+  messages Message[]
+  reads    ConversationRead[]
+
+  @@unique([dmUserAId, dmUserBId])
+}
+
+model ConversationRead {
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  lastReadAt     DateTime     @default(now())
+
+  @@id([conversationId, userId])
+}
+
+model Message {
+  id   String   @id @default(cuid())
+  text String   @db.Text
+  ts   DateTime @default(now())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+
+  from   User   @relation(fields: [fromId], references: [id])
+  fromId String
+
+  @@index([conversationId])
+}
+
+model Notification {
+  id   String           @id @default(cuid())
+  type NotificationType
+  text String
+  ts   DateTime         @default(now())
+  read Boolean          @default(false)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@index([userId])
+}

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="stylesheet" href="_ds/industry-feb92b32-f7a6-4366-a007-a629b2f673f7/styles.css"></helmet>
+<div style="max-width:1000px">
+  <div style="display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e3e8e6;border-radius:14px;padding:14px 18px;margin-bottom:22px;flex-wrap:wrap">
+    <div style="width:40px;height:40px;flex:none;border-radius:11px;background:#dbeafe;color:#1e3a8a;display:flex;align-items:center;justify-content:center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6 1.6 0 3 .3 4.2.9"></path><path d="M18 14v6M15 17h6"></path></svg>
+    </div>
+    <div style="flex:none">
+      <div style="font-family:var(--font-heading);font-weight:700;font-size:14px">Create account</div>
+      <div style="font-size:11.5px;color:#8a968f">Add a new user to the system</div>
+    </div>
+    <input value="{{ newName }}" onInput="{{ onNewName }}" placeholder="Full name" class="input" style="flex:1;min-width:120px;height:40px;padding:0 14px;font-size:13.5px">
+    <input value="{{ newEmail }}" onInput="{{ onNewEmail }}" type="email" placeholder="Email" class="input" style="flex:1;min-width:120px;height:40px;padding:0 14px;font-size:13.5px">
+    <input value="{{ newPw }}" onInput="{{ onNewPw }}" type="password" placeholder="Password" class="input" style="flex:1;min-width:120px;height:40px;padding:0 14px;font-size:13.5px">
+    <button class="btn btn-primary" onClick="{{ submitNew }}" style="height:40px;padding:0 18px;flex:none">Create</button>
+  </div>
+
+  <div style="border:1px solid #e3e8e6;border-radius:14px;background:#fff;overflow:hidden">
+    <div style="display:grid;grid-template-columns:1.7fr 1fr 1.6fr 1.6fr auto;gap:14px;padding:12px 18px;background:#f8faf9;border-bottom:1px solid #e3e8e6;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#5c6a67">
+      <div>User</div><div>Team</div><div>Email</div><div>Password</div><div></div>
+    </div>
+    <sc-for list="{{ accounts }}" as="a" hint-placeholder-count="6">
+      <div style="display:grid;grid-template-columns:1.7fr 1fr 1.6fr 1.6fr auto;gap:14px;padding:12px 18px;border-bottom:1px solid #f0f3f2;align-items:center" style-hover="background:#f8faf9">
+        <div style="display:flex;align-items:center;gap:11px;min-width:0">
+          <div style="width:34px;height:34px;flex:none;border-radius:50%;background:#eef1f0;color:#3d4a47;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;font-family:'IBM Plex Mono',monospace">{{ a.initials }}</div>
+          <div style="min-width:0">
+            <div style="display:flex;align-items:center;gap:7px">
+              <span style="font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a.name }}</span>
+              <sc-if value="{{ a.admin }}" hint-placeholder-val="{{ false }}"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:#92400e;background:#fef3c7;padding:1px 7px;border-radius:99px;text-transform:uppercase;letter-spacing:.04em">Admin</span></sc-if>
+            </div>
+            <div style="font-size:11.5px;color:#8a968f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a.title }}</div>
+          </div>
+        </div>
+        <div style="font-size:12.5px;color:{{ a.teamColor }}">{{ a.teamName }}</div>
+        <div style="display:flex;align-items:center;gap:7px">
+          <input value="{{ a.emailDraft }}" onInput="{{ a.onEmail }}" type="email" placeholder="Set email" class="input" style="flex:1;min-width:0;height:34px;padding:0 11px;font-size:12.5px">
+          <button class="btn btn-secondary" onClick="{{ a.saveEmail }}" style="height:34px;padding:0 12px;font-size:12px;flex:none">Save</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:7px">
+          <input value="{{ a.draft }}" onInput="{{ a.onDraft }}" type="password" placeholder="{{ a.pwPlaceholder }}" class="input" style="flex:1;min-width:0;height:34px;padding:0 11px;font-size:12.5px">
+          <button class="btn btn-secondary" onClick="{{ a.save }}" style="height:34px;padding:0 12px;font-size:12px;flex:none">Save</button>
+        </div>
+        <button onClick="{{ a.del }}" title="Delete user" aria-label="Delete user" style="flex:none;display:flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #e3e8e6;background:#fff;color:#8a968f;border-radius:8px;cursor:pointer" style-hover="border-color:#fca5a5;color:#b91c1c;background:#fef2f2">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"></path></svg>
+        </button>
+      </div>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{ savedToast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:70;background:#10201d;color:#fff;padding:11px 20px;border-radius:99px;font-size:13px;font-weight:600;box-shadow:0 12px 34px rgba(9,20,17,.32);animation:popIn .2s ease">{{ savedToast }}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { newName: '', newPw: '', newEmail: '', drafts: {}, emailDrafts: {}, savedToast: null };
+  onNewName = (e) => this.setState({ newName: e.target.value });
+  onNewEmail = (e) => this.setState({ newEmail: e.target.value });
+  onNewPw = (e) => this.setState({ newPw: e.target.value });
+  submitNew = () => { const n = this.state.newName.trim(); if (!n) return; this.props.createAccount(n, this.state.newPw, this.state.newEmail); this.setState({ newName: '', newPw: '', newEmail: '' }); this.flash('Account created'); };
+  onDraft = (id, e) => { const v = e.target.value; this.setState(s => ({ drafts: { ...s.drafts, [id]: v } })); };
+  onEmail = (id, e) => { const v = e.target.value; this.setState(s => ({ emailDrafts: { ...s.emailDrafts, [id]: v } })); };
+  saveEmail = (id) => { const em = this.state.emailDrafts[id]; if (em === undefined) return; this.props.setEmail && this.props.setEmail(id, em); this.setState(s => { const d = { ...s.emailDrafts }; delete d[id]; return { emailDrafts: d }; }); this.flash('Email updated'); };
+  save = (id) => { const pw = (this.state.drafts[id] || '').trim(); if (!pw) return; this.props.setPassword(id, pw); this.setState(s => ({ drafts: { ...s.drafts, [id]: '' } })); this.flash('Password updated'); };
+  flash = (msg) => { this.setState({ savedToast: msg }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ savedToast: null }), 1800); };
+  renderVals() {
+    const accounts = (this.props.accounts || []).map(a => ({
+      ...a,
+      teamColor: a.hasTeam ? '#3d4a47' : '#96a19d',
+      pwPlaceholder: a.hasPassword ? 'Change password' : 'Set password',
+      draft: this.state.drafts[a.id] || '',
+      onDraft: (e) => this.onDraft(a.id, e),
+      save: () => this.save(a.id),
+      emailDraft: this.state.emailDrafts[a.id] !== undefined ? this.state.emailDrafts[a.id] : (a.email || ''),
+      onEmail: (e) => this.onEmail(a.id, e),
+      saveEmail: () => this.saveEmail(a.id),
+    }));
+    return {
+      accounts,
+      newName: this.state.newName, newPw: this.state.newPw, newEmail: this.state.newEmail,
+      onNewName: this.onNewName, onNewPw: this.onNewPw, onNewEmail: this.onNewEmail, submitNew: this.submitNew,
+      savedToast: this.state.savedToast,
+    };
+  }
+}
+</script>
+</body>
+</html>

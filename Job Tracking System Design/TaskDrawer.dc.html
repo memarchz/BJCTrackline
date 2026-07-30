@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="stylesheet" href="_ds/industry-feb92b32-f7a6-4366-a007-a629b2f673f7/styles.css">
+<style>@keyframes drawerIn{from{transform:translateX(24px);opacity:0}to{transform:translateX(0);opacity:1}}@keyframes bdIn{from{opacity:0}to{opacity:1}}</style>
+</helmet>
+<div style="position:fixed;inset:0;background:color-mix(in srgb, var(--color-neutral-900) 45%, transparent);z-index:40;display:flex;justify-content:flex-end;animation:bdIn .18s ease" onClick="{{ close }}">
+  <div style="width:460px;max-width:100%;height:100%;background:#fff;border-left:1px solid var(--color-divider);box-shadow:var(--shadow-lg);overflow-y:auto;padding:var(--space-6);animation:drawerIn .22s ease" onClick="{{ stop }}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:var(--space-3)">
+      <div>
+        <div class="text-muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em">{{ task.teamName }}</div>
+        <h3 style="margin:2px 0 0">{{ task.title }}</h3>
+      </div>
+      <button class="btn btn-icon btn-secondary" onClick="{{ close }}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+      </button>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:var(--space-4)">
+      <span class="{{ task.statusTagClass }}">{{ task.statusLabel }}</span>
+      <sc-if value="{{ task.overdue }}"><span class="badge b-overdue">Overdue</span></sc-if>
+      <span class="badge {{ task.priorityLvl }}">Priority · {{ task.priorityLabel }}</span>
+      <span class="badge {{ task.impactLvl }}">Impact · {{ task.impactLabel }}</span>
+    </div>
+
+    <p style="font-size:13.5px;line-height:1.55">{{ task.description }}</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);font-size:12.5px;margin-bottom:var(--space-4)">
+      <div><div class="text-muted">Assignees</div><div>{{ task.assigneeNamesJoined }}</div></div>
+      <div><div class="text-muted">Due</div><div>{{ task.dueLabel }}</div></div>
+    </div>
+
+    <sc-if value="{{ task.hasSubtasks }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-bottom:var(--space-4)">
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:13px;margin-bottom:8px">Subtasks</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <sc-for list="{{ task.subtasks }}" as="sub" hint-placeholder-count="3">
+            <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer">
+              <input type="checkbox" checked="{{ sub.done }}" onChange="{{ sub.toggle }}"/>
+              <span style="{{ sub.textStyle }}">{{ sub.title }}</span>
+              <span class="text-muted" style="margin-left:auto">{{ sub.assigneeName }}</span>
+            </label>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ task.canReview }}" hint-placeholder-val="{{ false }}">
+      <div class="blueprint" style="padding:var(--space-3);margin-bottom:var(--space-4)">
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:13px;margin-bottom:8px">Review submission</div>
+        <textarea class="input" placeholder="Reason if rejecting..." value="{{ rejectReason }}" onChange="{{ setRejectReason }}" style="margin-bottom:8px"></textarea>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary" style="flex:1" onClick="{{ task.rejectThis }}">Reject</button>
+          <button class="btn btn-success" style="flex:1" onClick="{{ task.approveThis }}">Approve</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ task.showAssignerFiles }}" hint-placeholder-val="{{ false }}">
+      <div style="border:1px solid #e3e8e6;border-radius:12px;padding:16px;margin-bottom:var(--space-4);background:#f8faf9">
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:13px;margin-bottom:10px">Files from assigner</div>
+        <sc-for list="{{ task.assignerFiles }}" as="a" hint-placeholder-count="1">
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#fff;border:1px solid #e3e8e6;border-radius:9px;margin-bottom:8px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.6"><path d="M14 3v5h5"></path><path d="M6 3h8l5 5v13H6z"></path></svg>
+            <span style="font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ a.name }}</span>
+            <span class="text-muted" style="font-size:10.5px;margin-left:auto;font-family:var(--font-mono)">{{ a.ts }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ task.showStart }}" hint-placeholder-val="{{ false }}">
+      <div style="border:1px solid #fde68a;border-radius:12px;padding:16px;margin-bottom:var(--space-4);background:#fffbeb;display:flex;align-items:center;gap:14px">
+        <div style="min-width:0;flex:1">
+          <div style="font-family:var(--font-heading);font-weight:600;font-size:13px;color:#92400e">Ready to start?</div>
+          <div style="font-size:12px;color:#a16207;margin-top:2px">Review the details above, then begin work on this task.</div>
+        </div>
+        <button class="btn btn-primary" style="flex:none;background:#d97706 !important;border-color:#d97706 !important" onClick="{{ onStart }}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l14 9-14 9V3z"></path></svg>
+          Start task
+        </button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ task.showUpload }}" hint-placeholder-val="{{ false }}">
+      <div style="border:1px solid #e3e8e6;border-radius:12px;padding:16px;margin-bottom:var(--space-4);background:#f8faf9">
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:13px;margin-bottom:10px">Deliverables</div>
+        <sc-for list="{{ task.attachments }}" as="a" hint-placeholder-count="0">
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#fff;border:1px solid #e3e8e6;border-radius:9px;margin-bottom:8px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.6"><path d="M14 3v5h5"></path><path d="M6 3h8l5 5v13H6z"></path></svg>
+            <span style="font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ a.name }}</span>
+            <span class="text-muted" style="font-size:10.5px;margin-left:auto;font-family:var(--font-mono)">{{ a.ts }}</span>
+          </div>
+        </sc-for>
+        <label style="display:flex;align-items:center;justify-content:center;gap:8px;border:1.5px dashed #b6c3be;border-radius:9px;padding:14px;cursor:pointer;color:#2563eb;font-size:12.5px;font-weight:600">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4M7 9l5-5 5 5"></path><path d="M4 17v3h16v-3"></path></svg>
+          Upload work file
+          <input type="file" style="display:none" onChange="{{ onUpload }}"/>
+        </label>
+        <sc-if value="{{ task.noAttachments }}" hint-placeholder-val="{{ true }}">
+          <div class="text-muted" style="font-size:11.5px;margin-top:8px;text-align:center">No files uploaded yet.</div>
+        </sc-if>
+        <button class="btn btn-primary" style="width:100%;margin-top:12px" onClick="{{ onSubmit }}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l14-7-4 16-4-6-6-3z"></path></svg>
+          Submit for review
+        </button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ task.isRejected }}" hint-placeholder-val="{{ false }}">
+      <div style="border:1px solid #fecaca;border-radius:12px;padding:16px;margin-bottom:var(--space-4);background:#fef2f2">
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:13px;margin-bottom:4px;color:#7f1d1d">Rejection note</div>
+        <div style="font-size:12.5px;color:#991b1b;line-height:1.5;margin-bottom:12px">{{ task.rejectReason }}</div>
+        <button class="btn btn-primary" style="width:100%;background:#0284c7 !important;border-color:#0284c7 !important" onClick="{{ onRework }}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 4v4h4"></path></svg>
+          Rework — move to In Progress
+        </button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ task.isSubmitted }}" hint-placeholder-val="{{ false }}">
+      <div style="border:1px solid #fde68a;border-radius:12px;padding:16px;margin-bottom:var(--space-4);background:#fffbeb;display:flex;align-items:center;gap:14px">
+        <div style="min-width:0;flex:1">
+          <div style="font-family:var(--font-heading);font-weight:600;font-size:13px;color:#92400e">Awaiting approval</div>
+          <div style="font-size:12px;color:#a16207;margin-top:2px">Cancel to pull it back to In Progress.</div>
+        </div>
+        <button class="btn btn-secondary" style="flex:none;border-color:#dc2626 !important;color:#b91c1c" onClick="{{ onCancel }}">Cancel</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ task.isCompleted }}" hint-placeholder-val="{{ false }}">
+      <div style="border:1px solid #bbf7d0;border-radius:12px;padding:16px;margin-bottom:var(--space-4);background:#f0fdf4;display:flex;align-items:center;gap:14px">
+        <div style="min-width:0;flex:1">
+          <div style="font-family:var(--font-heading);font-weight:600;font-size:13px;color:#14532d">Approved &amp; complete</div>
+          <div style="font-size:12px;color:#15803d;margin-top:2px">File this away into History.</div>
+        </div>
+        <button class="btn btn-success" style="flex:none" onClick="{{ onArchive }}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 4h18v4H3zM5 8v12h14V8"></path><path d="M10 12h4"></path></svg>
+          Archive
+        </button>
+      </div>
+    </sc-if>
+
+    <div>
+      <div style="font-family:var(--font-heading);font-weight:600;font-size:13px;margin-bottom:12px">History</div>
+      <div style="display:flex;flex-direction:column">
+        <sc-for list="{{ timeline }}" as="l" hint-placeholder-count="3">
+          <div style="display:flex;gap:14px">
+            <div style="display:flex;flex-direction:column;align-items:center;flex:none;padding-top:2px">
+              <div style="width:13px;height:13px;border-radius:50%;background:{{ l.dot }};box-shadow:0 0 0 4px {{ l.ring }};flex:none"></div>
+              <sc-if value="{{ l.showLine }}" hint-placeholder-val="{{ true }}"><div style="width:2px;flex:1;min-height:24px;background:#e3e8e6;margin:3px 0"></div></sc-if>
+            </div>
+            <div style="padding-bottom:16px;min-width:0">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <span style="font-size:13px;font-weight:600;text-transform:capitalize">{{ l.action }}</span>
+                <span class="badge {{ l.badgeClass }}">{{ l.statusText }}</span>
+              </div>
+              <div class="text-muted" style="font-size:11.5px;margin-top:3px">{{ l.byName }} · {{ l.rel }}</div>
+              <div style="font-size:12px;margin-top:3px;color:#3d4a47;line-height:1.45">{{ l.note }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const TAGS = { todo: 'badge b-todo', in_progress: 'badge b-progress', submitted: 'badge b-submitted', rejected: 'badge b-rejected', completed: 'badge b-completed' };
+function fmtDate(iso) { if (!iso) return '—'; const d = new Date(iso + 'T00:00:00'); return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+
+class Component extends DCLogic {
+  renderVals() {
+    const t = this.props.task || {};
+    const task = {
+      ...t, statusTagClass: TAGS[t.status], dueLabel: fmtDate(t.dueDate),
+      assigneeNamesJoined: (t.assigneeNames || []).join(', '),
+      hasSubtasks: t.subtasks && t.subtasks.length > 0,
+      subtasks: (t.subtasks || []).map(s => ({ ...s, textStyle: s.done ? 'text-decoration:line-through;opacity:.6' : '' })),
+      canReview: (this.props.isAdmin || this.props.isReviewer) && t.status === 'submitted',
+      isRejected: t.status === 'rejected',
+      isSubmitted: t.status === 'submitted' && !(this.props.isAdmin || this.props.isReviewer),
+      isCompleted: t.status === 'completed',
+      showStart: t.status === 'todo',
+      assignerFiles: (t.attachments || []).filter(a => a.fromAssigner),
+      showAssignerFiles: (t.attachments || []).some(a => a.fromAssigner),
+      showUpload: t.status === 'in_progress', attachments: t.attachments || [], noAttachments: !(t.attachments && t.attachments.length),
+      priorityLvl: ({ high: 'lvl-high', medium: 'lvl-med', low: 'lvl-low' })[t.priority] || 'lvl-low',
+      impactLvl: ({ high: 'lvl-high', medium: 'lvl-med', low: 'lvl-low' })[t.impact] || 'lvl-low',
+      priorityLabel: t.priority ? t.priority.charAt(0).toUpperCase() + t.priority.slice(1) : '',
+      impactLabel: t.impact ? t.impact.charAt(0).toUpperCase() + t.impact.slice(1) : '',
+    };
+    const META = {
+      created: { dot: '#93c5fd', ring: '#dbeafe', badgeClass: 'b-todo', text: 'Created' },
+      started: { dot: '#2563eb', ring: '#dbeafe', badgeClass: 'b-progress', text: 'In Progress' },
+      submitted: { dot: '#2563eb', ring: '#dbeafe', badgeClass: 'b-submitted', text: 'Submitted' },
+      approved: { dot: '#15803d', ring: '#dcfce7', badgeClass: 'b-completed', text: 'Approved' },
+      rejected: { dot: '#b91c1c', ring: '#fee2e2', badgeClass: 'b-rejected', text: 'Rejected' },
+    };
+    const chrono = (t.logEnriched || []).slice().reverse();
+    const timeline = chrono.map((l, i) => {
+      const m = META[l.action] || { dot: '#9aa7a3', ring: '#eef1f0', badgeClass: 'b-todo', text: l.action };
+      return { ...l, dot: m.dot, ring: m.ring, badgeClass: m.badgeClass, statusText: m.text, showLine: i < chrono.length - 1 };
+    });
+    return {
+      task, timeline, close: this.props.close, stop: (e) => e.stopPropagation(),
+      rejectReason: this.props.rejectReason, setRejectReason: this.props.setRejectReason,
+      onUpload: (e) => { const f = e.target.files && e.target.files[0]; if (f && this.props.onUpload) this.props.onUpload(f.name); },
+      onStart: this.props.onStart || (() => {}),
+      onCancel: this.props.onCancel || (() => {}), onRework: this.props.onRework || (() => {}), onArchive: this.props.onArchive || (() => {}),
+      onSubmit: this.props.onSubmit || (() => {}),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

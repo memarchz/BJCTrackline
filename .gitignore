@@ -1,0 +1,25 @@
+# Claude Code local state — settings, session data, and any worktrees
+# created during agent runs (these can contain full duplicate checkouts).
+.claude/
+**/.claude/
+
+# Stray local binary, not part of the project.
+claude.exe
+
+# Dependencies / build output (frontend and backend also have their own
+# .gitignore, but keep this here too since git init is at the repo root).
+node_modules/
+dist/
+.next/
+out/
+build/
+
+# Env files — never commit real credentials.
+.env
+.env.local
+.env.*.local
+!.env.example
+
+*.log
+.DS_Store
+*.tsbuildinfo

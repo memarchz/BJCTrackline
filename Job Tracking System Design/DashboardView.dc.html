@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/industry-feb92b32-f7a6-4366-a007-a629b2f673f7/styles.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+</helmet>
+<div style="display:flex;flex-direction:column;gap:var(--space-6);max-width:1200px">
+  <div style="background:linear-gradient(120deg, var(--color-accent-900), var(--color-accent-700));color:var(--color-neutral-100);padding:var(--space-6);border-radius:16px;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <sc-if value="{{ isAdmin }}"><h2 style="margin:0 0 4px;color:var(--color-neutral-100)">Organization dashboard</h2></sc-if>
+      <sc-if value="{{ isUser }}"><h2 style="margin:0 0 4px;color:var(--color-neutral-100)">My dashboard</h2></sc-if>
+      <div style="font-size:13px;opacity:.75">Progress across active work, updated live as tasks move.</div>
+    </div>
+    <svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-300)" stroke-width="1.2" opacity="0.7"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4)">
+    <sc-for list="{{ stats }}" as="st" hint-placeholder-count="4">
+      <div style="border:1px solid {{ st.borderColor }};border-radius:16px;background:{{ st.gradient }};padding:20px 22px;display:flex;align-items:center;gap:16px;min-width:0">
+        <div style="width:52px;height:52px;flex:none;border-radius:14px;background:{{ st.color }};color:#fff;display:flex;align-items:center;justify-content:center">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9" opacity="0.3"></circle><path d="{{ st.iconPath }}"></path></svg>
+        </div>
+        <div style="min-width:0">
+          <div class="statnum" style="font-family:'IBM Plex Mono',monospace;font-size:36px;line-height:1;color:{{ st.darkText }}">{{ st.value }}</div>
+          <div class="kicker" style="font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:{{ st.color }};margin-top:6px;font-weight:600;text-wrap:balance">{{ st.label }}</div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="border:1px solid #fde68a;border-radius:16px;background:#fffdf7;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid #fdecc0;background:linear-gradient(135deg,#fffbeb,#fef3c7)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="1.9"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+      <span style="font-family:var(--font-heading);font-weight:700;font-size:14px;color:#92400e">Due soon</span>
+      <span style="font-size:11px;color:#a16207">within 3 days</span>
+      <span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#d97706;background:#fef3c7;padding:3px 10px;border-radius:99px">{{ dueSoonCount }}</span>
+    </div>
+    <div>
+      <sc-for list="{{ dueSoon }}" as="t" hint-placeholder-count="3">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid #fdf3d9;cursor:pointer" onClick="{{ t.open }}" style-hover="background:#fffdf5">
+          <span style="width:8px;height:8px;border-radius:50%;background:{{ t.dotColor }};flex:none"></span>
+          <div style="min-width:0;flex:1">
+            <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.title }}</div>
+            <div style="font-size:11.5px;color:#8a7a52">{{ t.teamName }} · {{ t.statusLabel }}</div>
+          </div>
+          <span class="badge {{ t.priorityLvlClass }}">{{ t.priorityLabel }}</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:{{ t.dueColor }};white-space:nowrap">{{ t.dueText }}</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c9b789" stroke-width="2" style="flex:none"><path d="M9 6l6 6-6 6"></path></svg>
+        </div>
+      </sc-for>
+      <sc-if value="{{ noDueSoon }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:20px;text-align:center;color:#a89b73;font-size:13px">Nothing due in the next 3 days.</div>
+      </sc-if>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:var(--space-4)">
+    <div style="border:1px solid #e3e8e6;border-radius:16px;background:#fff;padding:20px">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px">
+        <div style="font-family:var(--font-heading);font-weight:700;font-size:15px">Completed tasks</div>
+        <div style="font-size:11px;color:#96a19d;font-family:'IBM Plex Mono',monospace">Trailing 8 weeks</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <div style="display:flex;flex-direction:column;justify-content:space-between;height:170px;padding:6px 0;font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:#96a19d;text-align:right;width:20px;flex:none">
+          <sc-for list="{{ yTicks }}" as="y" hint-placeholder-count="3">
+            <div>{{ y }}</div>
+          </sc-for>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="position:relative;height:170px" onMouseLeave="{{ clearHover }}">
+            <svg viewBox="0 0 560 170" width="100%" height="170" preserveAspectRatio="none" style="display:block">
+              <line x1="8" y1="8" x2="552" y2="8" stroke="#f2f4f3" stroke-width="1"></line>
+              <line x1="8" y1="85" x2="552" y2="85" stroke="#f2f4f3" stroke-width="1"></line>
+              <line x1="8" y1="162" x2="552" y2="162" stroke="#e3e8e6" stroke-width="1"></line>
+              <path d="{{ areaPath }}" fill="url(#compGrad)" stroke="none"></path>
+              <path d="{{ linePath }}" fill="none" stroke="#2563eb" stroke-width="2.5"></path>
+              <defs><linearGradient id="compGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2563eb" stop-opacity="0.2"></stop><stop offset="1" stop-color="#2563eb" stop-opacity="0"></stop></linearGradient></defs>
+              <sc-for list="{{ points }}" as="p" hint-placeholder-count="8">
+                <circle cx="{{ p.cx }}" cy="{{ p.cy }}" r="{{ p.r }}" fill="#fff" stroke="#1e3a8a" stroke-width="2"></circle>
+              </sc-for>
+            </svg>
+            <sc-if value="{{ hasHover }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;top:0;bottom:22px;width:1px;background:#bfdbfe;left:{{ hover.leftPct }}%;pointer-events:none"></div>
+              <div style="position:absolute;transform:translate(-50%,-100%);left:{{ hover.leftPct }}%;top:{{ hover.topPx }}px;background:#0f2038;color:#fff;padding:7px 11px;border-radius:9px;font-size:11px;white-space:nowrap;pointer-events:none;box-shadow:0 6px 16px rgba(9,20,17,.3);z-index:2">
+                <div style="font-family:'IBM Plex Mono',monospace;font-weight:600">{{ hover.count }} completed</div>
+                <div style="opacity:.65;font-size:10px;margin-top:1px">{{ hover.label }}</div>
+              </div>
+            </sc-if>
+            <div style="position:absolute;inset:0 0 22px 0;display:flex">
+              <sc-for list="{{ points }}" as="p" hint-placeholder-count="8">
+                <div style="flex:1;height:100%;cursor:pointer" onMouseEnter="{{ p.hover }}"></div>
+              </sc-for>
+            </div>
+            <div style="position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between">
+              <sc-for list="{{ weekLabels }}" as="w" hint-placeholder-count="8">
+                <span style="font-size:9.5px;color:#96a19d;font-family:'IBM Plex Mono',monospace">{{ w }}</span>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="blueprint" style="padding:var(--space-4)">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      <div style="font-family:var(--font-heading);font-weight:600;font-size:15px;margin-bottom:10px">Priority mix</div>
+      <sc-for list="{{ priorityDist }}" as="p" hint-placeholder-count="3">
+        <div style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+            <span style="text-transform:capitalize;font-weight:600">{{ p.level }}</span>
+            <span class="text-muted">{{ p.count }}</span>
+          </div>
+          <div style="height:6px;background:var(--color-neutral-200)">
+            <div style="height:100%;background:linear-gradient(90deg, var(--color-accent-400), var(--color-accent-700));width:{{ p.pct }}%"></div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+    <div style="border:1px solid #e3e8e6;border-radius:16px;background:#fff;padding:20px">
+      <div style="font-family:var(--font-heading);font-weight:700;font-size:15px;margin-bottom:14px">Recent activity</div>
+      <div style="display:flex;flex-direction:column">
+        <sc-for list="{{ recent }}" as="a" hint-placeholder-count="5">
+          <div style="display:flex;gap:12px;padding-bottom:14px">
+            <div style="display:flex;flex-direction:column;align-items:center;flex:none">
+              <div style="width:30px;height:30px;border-radius:9px;background:{{ a.iconBg }};color:{{ a.iconColor }};display:flex;align-items:center;justify-content:center">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="{{ a.iconPath }}"></path></svg>
+              </div>
+              <sc-if value="{{ a.showLine }}" hint-placeholder-val="{{ true }}"><div style="width:2px;flex:1;min-height:14px;background:#eef1f0;margin-top:4px"></div></sc-if>
+            </div>
+            <div style="min-width:0;flex:1;padding-top:2px">
+              <div style="font-size:12.5px;line-height:1.4;color:#10201d">
+                <span style="font-weight:600;color:{{ a.iconColor }}">{{ a.actionLabel }}</span> — {{ a.taskTitle }}
+              </div>
+              <div style="font-size:11px;color:#96a19d;margin-top:2px;font-family:'IBM Plex Mono',monospace">{{ a.byName }} · {{ a.rel }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <sc-if value="{{ true }}" hint-placeholder-val="{{ true }}">
+      <div style="border:1px solid #e3e8e6;border-radius:16px;background:#fff;padding:20px">
+        <div style="font-family:var(--font-heading);font-weight:700;font-size:15px;margin-bottom:14px">Upcoming for me</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <sc-for list="{{ upcoming }}" as="t" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:12px;padding:11px 13px;border:1px solid #eef1f0;border-radius:11px" style-hover="background:#f8faf9">
+              <div style="width:42px;flex:none;text-align:center;border-right:1px solid #eef1f0;padding-right:10px">
+                <div style="font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:16px;color:{{ t.dateColor }};line-height:1">{{ t.day }}</div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:#96a19d;text-transform:uppercase;letter-spacing:.05em">{{ t.mon }}</div>
+              </div>
+              <div style="min-width:0;flex:1">
+                <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.title }}</div>
+                <div style="font-size:11px;color:#96a19d">{{ t.statusLabel }}</div>
+              </div>
+              <span class="badge {{ t.priorityLvlClass }}">{{ t.priorityLabel }}</span>
+            </div>
+          </sc-for>
+          <sc-if value="{{ noUpcoming }}" hint-placeholder-val="{{ false }}">
+            <div style="border:1px dashed #cdd7d3;border-radius:11px;padding:20px;text-align:center;color:#96a19d;font-size:13px">Nothing upcoming.</div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const LVL = { high: 'badge lvl-high', medium: 'badge lvl-med', low: 'badge lvl-low' };
+const cap = (x) => (x ? x.charAt(0).toUpperCase() + x.slice(1) : '');
+function dueText(iso) {
+  const days = Math.round((new Date(iso) - new Date('2026-07-24')) / 86400000);
+  if (days <= 0) return 'Due today';
+  if (days === 1) return 'Due tomorrow';
+  return 'Due in ' + days + ' days';
+}
+class Component extends DCLogic {
+  state = { hoverIdx: -1 };
+  renderVals() {
+    const p = this.props;
+    const WK = ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'Now'];
+    const raw = p.chartPoints || [];
+    const maxC = Math.max(1, ...raw.map(pt => pt.c));
+    const PAD = 8, BASE = 162;
+    const pts = raw.map((pt, i) => ({ i, cx: pt.x, cy: BASE - (pt.c / maxC) * (BASE - PAD), c: pt.c, label: WK[i] || ('W' + (i + 1)) }));
+    const linePath = pts.map((pt, i) => (i === 0 ? 'M' : 'L') + pt.cx.toFixed(1) + ',' + pt.cy.toFixed(1)).join(' ');
+    const areaPath = pts.length ? linePath + ` L${pts[pts.length - 1].cx.toFixed(1)},${BASE} L${pts[0].cx.toFixed(1)},${BASE} Z` : '';
+    const hi = this.state.hoverIdx;
+    const points = pts.map(pt => ({ ...pt, r: pt.i === hi ? 5 : 3, hover: () => this.setState({ hoverIdx: pt.i }) }));
+    const hoverPt = pts[hi];
+    const yTicks = [maxC, Math.round(maxC / 2), 0];
+    const ACT = {
+      created: { iconBg: '#dbeafe', iconColor: '#2563eb', iconPath: 'M12 5v14M5 12h14', label: 'Created' },
+      started: { iconBg: '#e0f2fe', iconColor: '#0284c7', iconPath: 'M5 3l14 9-14 9V3z', label: 'Started' },
+      submitted: { iconBg: '#fef3c7', iconColor: '#b45309', iconPath: 'M5 12l14-7-4 16-4-6-6-3z', label: 'Submitted' },
+      approved: { iconBg: '#dcfce7', iconColor: '#15803d', iconPath: 'M20 6L9 17l-5-5', label: 'Approved' },
+      rejected: { iconBg: '#fee2e2', iconColor: '#b91c1c', iconPath: 'M6 6l12 12M18 6L6 18', label: 'Rejected' },
+    };
+    const recent = (p.recent || []).map((a, i, arr) => { const m = ACT[a.action] || ACT.created; return { ...a, ...m, actionLabel: m.label, showLine: i < arr.length - 1 }; });
+    const dueSoon = (p.dueSoon || []).map(t => {
+      const days = Math.round((new Date(t.dueDate) - new Date('2026-07-24')) / 86400000);
+      const urgent = days <= 1;
+      return { ...t, priorityLvlClass: LVL[t.priority] || 'badge lvl-low', priorityLabel: cap(t.priority), dueText: dueText(t.dueDate), dueColor: urgent ? '#b91c1c' : '#d97706', dotColor: urgent ? '#dc2626' : '#f59e0b', open: t.openThis || (() => {}) };
+    });
+    const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const upcoming = (p.myUpcoming || []).map(t => {
+      const d = new Date(t.dueDate + 'T00:00:00');
+      const days = Math.round((new Date(t.dueDate) - new Date('2026-07-24')) / 86400000);
+      return { ...t, day: d.getDate(), mon: MON[d.getMonth()], dateColor: days <= 1 ? '#b91c1c' : days <= 3 ? '#d97706' : '#2563eb', priorityLvlClass: LVL[t.priority] || 'badge lvl-low', priorityLabel: cap(t.priority) };
+    });
+    return {
+      isAdmin: p.isAdmin, isUser: p.isUser, stats: p.stats, teamBars: p.teamBars,
+      chartPath: p.chartPath, chartArea: p.chartArea, chartPoints: p.chartPoints,
+      priorityDist: p.priorityDist, recent, myUpcoming: p.myUpcoming,
+      upcoming, noUpcoming: upcoming.length === 0,
+      linePath, areaPath, points, weekLabels: WK, yTicks,
+      hasHover: hi >= 0 && !!hoverPt,
+      hover: hoverPt ? { leftPct: (hoverPt.cx / 560 * 100).toFixed(1), topPx: Math.max(28, hoverPt.cy - 6), count: hoverPt.c, label: hoverPt.label } : {},
+      clearHover: () => this.setState({ hoverIdx: -1 }),
+      dueSoon, dueSoonCount: dueSoon.length, noDueSoon: dueSoon.length === 0,
+      calendarTasks: p.calendarTasks || [],
+    };
+  }
+}
+</script>
+</body>
+</html>

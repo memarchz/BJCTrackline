@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="stylesheet" href="_ds/industry-feb92b32-f7a6-4366-a007-a629b2f673f7/styles.css"></helmet>
+<div style="max-width:1120px">
+  <sc-if value="{{ listView }}" hint-placeholder-val="{{ true }}">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:26px">
+      <sc-for list="{{ statusCards }}" as="c" hint-placeholder-count="4">
+        <div style="border:1px solid {{ c.borderColor }};border-radius:16px;background:{{ c.gradient }};padding:18px 20px;display:flex;align-items:center;gap:15px;min-width:0">
+          <div style="width:48px;height:48px;flex:none;border-radius:13px;background:{{ c.color }};color:#fff;display:flex;align-items:center;justify-content:center">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="{{ c.iconPath }}"></path></svg>
+          </div>
+          <div style="min-width:0">
+            <div class="statnum" style="font-family:'IBM Plex Mono',monospace;font-size:32px;line-height:1;color:{{ c.darkText }}">{{ c.count }}</div>
+            <div class="kicker" style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:{{ c.color }};margin-top:6px;font-weight:600;text-wrap:balance">{{ c.label }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px">
+      <div style="font-family:var(--font-heading);font-weight:700;font-size:16px">Project requests</div>
+      <div style="font-size:12.5px;color:#8a968f">{{ requestCount }} open requests</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <sc-for list="{{ requests }}" as="r" hint-placeholder-count="4">
+        <div onClick="{{ r.open }}" style="border:1px solid #e3e8e6;border-left:4px solid {{ r.statusColor }};border-radius:14px;background:#fff;padding:16px 20px;cursor:pointer;transition:box-shadow .16s ease,transform .14s ease" style-hover="box-shadow:0 8px 22px rgba(10,30,26,.10);transform:translateY(-2px)">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+            <div style="min-width:0;flex:1">
+              <div style="font-family:var(--font-heading);font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.project }}</div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#8a968f;margin-top:2px">{{ r.code }} · {{ r.dept }}</div>
+            </div>
+            <sc-if value="{{ r.rejected }}" hint-placeholder-val="{{ false }}">
+              <span style="display:inline-flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;color:#b91c1c;background:#fee2e2;border:1px solid #fca5a5;padding:4px 11px;border-radius:99px;white-space:nowrap;text-transform:uppercase;letter-spacing:.03em">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 6l12 12M18 6L6 18"></path></svg>Rejected
+              </span>
+            </sc-if>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;color:{{ r.statusColor }};background:{{ r.statusBg }};padding:4px 11px;border-radius:99px;white-space:nowrap;text-transform:uppercase;letter-spacing:.03em">{{ r.statusLabel }}</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b6c0bc" stroke-width="2" style="flex:none"><path d="M9 6l6 6-6 6"></path></svg>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="flex:1;height:8px;background:#eef1f0;border-radius:99px;overflow:hidden">
+              <div style="height:100%;width:{{ r.pct }}%;background:{{ r.statusColor }};border-radius:99px;transition:width .3s ease"></div>
+            </div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#5c6a67;flex:none">Step {{ r.step }}/6 · {{ r.stepLabel }}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;margin-top:11px;font-size:11.5px;color:#8a968f">
+            <span>Requester: <span style="color:#3d4a47;font-weight:500">{{ r.requester }}</span></span>
+            <span style="opacity:.4">•</span>
+            <span>Budget: <span style="color:#3d4a47;font-weight:500;font-family:'IBM Plex Mono',monospace">{{ r.amount }}</span></span>
+            <span style="opacity:.4">•</span>
+            <span>Opened {{ r.openedLabel }}</span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ detailView }}" hint-placeholder-val="{{ false }}">
+    <div>
+      <button class="btn btn-ghost" style="padding:0;margin-bottom:12px" onClick="{{ back }}">&larr; All requests</button>
+      <div style="border:1px solid #e3e8e6;border-radius:18px;background:#fff;overflow:hidden">
+        <div style="padding:22px 26px;border-bottom:1px solid #f0f3f2;display:flex;align-items:flex-start;gap:14px">
+          <div style="min-width:0;flex:1">
+            <div style="font-family:var(--font-heading);font-weight:700;font-size:20px">{{ selected.project }}</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#8a968f;margin-top:3px">{{ selected.code }} · {{ selected.dept }}</div>
+          </div>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:{{ selected.statusColor }};background:{{ selected.statusBg }};padding:5px 13px;border-radius:99px;white-space:nowrap;text-transform:uppercase;letter-spacing:.03em">{{ selected.statusLabel }}</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#f0f3f2">
+          <div style="background:#fff;padding:16px 22px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#96a19d;margin-bottom:5px">Requester</div>
+            <div style="font-weight:600;font-size:13.5px">{{ selected.requester }}</div>
+          </div>
+          <div style="background:#fff;padding:16px 22px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#96a19d;margin-bottom:5px">Budget</div>
+            <div style="font-weight:600;font-size:13.5px;font-family:'IBM Plex Mono',monospace">{{ selected.amount }}</div>
+          </div>
+          <div style="background:#fff;padding:16px 22px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#96a19d;margin-bottom:5px">Opened</div>
+            <div style="font-weight:600;font-size:13.5px">{{ selected.openedLabel }}</div>
+          </div>
+          <div style="background:#fff;padding:16px 22px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#96a19d;margin-bottom:5px">Progress</div>
+            <div style="font-weight:600;font-size:13.5px;font-family:'IBM Plex Mono',monospace;color:{{ selected.statusColor }}">{{ selected.pct }}%</div>
+          </div>
+        </div>
+
+        <div style="padding:28px 26px 26px">
+          <div style="font-family:var(--font-heading);font-weight:700;font-size:14px;margin-bottom:22px">TOR lifecycle</div>
+          <div style="display:flex;align-items:flex-start;position:relative">
+            <sc-for list="{{ steps }}" as="st" hint-placeholder-count="6">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;position:relative;min-width:0">
+                <div style="position:absolute;top:17px;left:-50%;width:100%;height:3px;background:{{ st.lineColor }};display:{{ st.lineDisplay }}"></div>
+                <div style="position:relative;z-index:1;width:36px;height:36px;border-radius:50%;background:{{ st.nodeBg }};border:2px solid {{ st.nodeBorder }};color:{{ st.numColor }};display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:14px">
+                  <sc-if value="{{ st.done }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"></path></svg></sc-if>
+                  <sc-if value="{{ st.notDone }}" hint-placeholder-val="{{ true }}">{{ st.num }}</sc-if>
+                </div>
+                <div style="margin-top:9px;font-size:12px;font-weight:600;color:{{ st.labelColor }};text-align:center">{{ st.label }}</div>
+                <sc-if value="{{ st.current }}" hint-placeholder-val="{{ false }}"><div style="margin-top:3px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:{{ selected.statusColor }};text-transform:uppercase;letter-spacing:.05em">Current</div></sc-if>
+              </div>
+            </sc-for>
+          </div>
+          <div style="margin-top:28px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:7px">
+              <span style="font-size:12px;color:#5c6a67;font-weight:500">Overall progress</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:{{ selected.statusColor }}">{{ selected.pct }}%</span>
+            </div>
+            <div style="height:10px;background:#eef1f0;border-radius:99px;overflow:hidden">
+              <div style="height:100%;width:{{ selected.pct }}%;background:linear-gradient(90deg,{{ selected.statusColor }},{{ selected.statusColorDark }});border-radius:99px;transition:width .4s ease"></div>
+            </div>
+          </div>
+
+          <sc-if value="{{ showRejected }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:24px;border:1px solid #fca5a5;background:#fef2f2;border-radius:12px;padding:16px 18px;display:flex;gap:12px">
+              <div style="width:34px;height:34px;flex:none;border-radius:9px;background:#fee2e2;color:#b91c1c;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"></path></svg></div>
+              <div style="min-width:0">
+                <div style="font-family:var(--font-heading);font-weight:700;font-size:13.5px;color:#991b1b">Rejected by chief</div>
+                <div style="font-size:12.5px;color:#7f1d1d;margin-top:4px;line-height:1.5">{{ selected.reviewComment }}</div>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ showApproved }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:24px;border:1px solid #bbf7d0;background:#f0fdf4;border-radius:12px;padding:16px 18px;display:flex;gap:12px">
+              <div style="width:34px;height:34px;flex:none;border-radius:9px;background:#dcfce7;color:#15803d;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"></path></svg></div>
+              <div style="min-width:0">
+                <div style="font-family:var(--font-heading);font-weight:700;font-size:13.5px;color:#14532d">Approved by chief</div>
+                <div style="font-size:12.5px;color:#166534;margin-top:4px;line-height:1.5">{{ selected.reviewComment }}</div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ showAdminPanel }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:24px;border-top:1px solid #f0f3f2;padding-top:20px">
+              <div style="font-family:var(--font-heading);font-weight:700;font-size:14px;margin-bottom:10px">Chief review</div>
+              <textarea value="{{ comment }}" onInput="{{ onComment }}" placeholder="Add a comment (required to reject)…" class="input" style="width:100%;min-height:72px;padding:11px 13px;font-size:13px;font-family:var(--font-body);resize:vertical"></textarea>
+              <div style="display:flex;gap:10px;margin-top:12px">
+                <button class="btn btn-success" onClick="{{ doApprove }}" style="height:40px;padding:0 20px;display:inline-flex;align-items:center;gap:8px">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"></path></svg>Approve
+                </button>
+                <button onClick="{{ doReject }}" style="height:40px;padding:0 20px;display:inline-flex;align-items:center;gap:8px;border:1px solid #fca5a5;background:#fff;color:#b91c1c;border-radius:9px;font-weight:600;font-size:13.5px;font-family:var(--font-body);cursor:pointer" style-hover="background:#fef2f2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"></path></svg>Reject
+                </button>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const STEP_LABELS = ['TOR', 'Bidding', 'PTA', 'PR', 'PO', 'Completed'];
+class Component extends DCLogic {
+  state = { selectedId: null, comment: '' };
+  open = (id) => this.setState({ selectedId: id, comment: '' });
+  back = () => this.setState({ selectedId: null, comment: '' });
+  onComment = (e) => this.setState({ comment: e.target.value });
+  doApprove = () => { this.props.review && this.props.review(this.state.selectedId, 'approved', this.state.comment); this.setState({ comment: '' }); };
+  doReject = () => { if (!this.state.comment.trim()) return; this.props.review && this.props.review(this.state.selectedId, 'rejected', this.state.comment); this.setState({ comment: '' }); };
+  renderVals() {
+    const reqs = (this.props.requests || []).map(r => ({ ...r, open: () => this.open(r.id) }));
+    const selectedRaw = reqs.find(r => r.id === this.state.selectedId) || null;
+    let steps = [];
+    let selected = null;
+    if (selectedRaw) {
+      const cur = selectedRaw.step;
+      const c = selectedRaw.statusColor;
+      selected = { ...selectedRaw, statusColorDark: selectedRaw.statusColorDark || c };
+      steps = STEP_LABELS.map((label, i) => {
+        const n = i + 1;
+        const done = n < cur;
+        const current = n === cur;
+        return {
+          num: n, label, done, notDone: !done, current,
+          nodeBg: done ? '#15803d' : current ? c : '#fff',
+          nodeBorder: done ? '#15803d' : current ? c : '#d7dedb',
+          numColor: current ? '#fff' : done ? '#fff' : '#b6c0bc',
+          labelColor: (done || current) ? '#10201d' : '#96a19d',
+          lineColor: n <= cur ? '#15803d' : '#e3e8e6',
+          lineDisplay: i === 0 ? 'none' : 'block',
+        };
+      });
+    }
+    return {
+      statusCards: this.props.statusCards || [],
+      requests: reqs, requestCount: reqs.length,
+      listView: !this.state.selectedId, detailView: !!selectedRaw,
+      selected, steps, back: this.back,
+      isAdmin: !!this.props.isAdmin, comment: this.state.comment, onComment: this.onComment,
+      doApprove: this.doApprove, doReject: this.doReject,
+      showAdminPanel: !!this.props.isAdmin && !!selectedRaw,
+      showRejected: !!selectedRaw && selectedRaw.rejected,
+      showApproved: !!selectedRaw && selectedRaw.approved,
+    };
+  }
+}
+</script>
+</body>
+</html>
