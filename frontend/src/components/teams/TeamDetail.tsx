@@ -10,12 +10,36 @@ import { TaskDrawer } from "@/components/tasks/TaskDrawer";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 import { starTask, deleteTask, nudgeTask } from "@/lib/task-actions";
 import { CompletionChart } from "@/components/dashboard/CompletionChart";
+import { CompletionRateChart } from "@/components/dashboard/CompletionRateChart";
+import { AvgScoreChart } from "@/components/dashboard/AvgScoreChart";
 import { Toast, useToast } from "@/components/ui/Toast";
 import { NudgeConfirmDialog } from "@/components/teams/NudgeConfirmDialog";
 import { DeleteTaskConfirmDialog } from "@/components/teams/DeleteTaskConfirmDialog";
 
 function initials(name: string) {
   return name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+}
+
+// Scored for a specific member rather than the logged-in viewer: for a task
+// with subtasks, a task-level assignee is scored on the average across all
+// subtasks, while a subtask-only assignee is scored on just their own.
+function memberTaskScore(task: Task, memberId: string): number | null {
+  if (task.subtasks.length === 0) return task.score;
+  const isTaskAssignee = task.assignees.some((a) => a.id === memberId);
+  const relevant = isTaskAssignee ? task.subtasks : task.subtasks.filter((s) => s.assignee?.id === memberId);
+  const scores = relevant.map((s) => s.score).filter((s): s is number => s != null);
+  if (scores.length === 0) return null;
+  return Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 100) / 100;
+}
+
+function taskRejectionCount(task: Task): number {
+  return task.log.filter((l) => l.action === "rejected").length;
+}
+
+function scoreBadgeStyle(score: number): { bg: string; color: string } {
+  if (score >= 8) return { bg: "#dcfce7", color: "#15803d" };
+  if (score >= 5) return { bg: "#fef3c7", color: "#b45309" };
+  return { bg: "#fee2e2", color: "#b91c1c" };
 }
 
 const STAT_META = {
@@ -39,6 +63,7 @@ export function TeamDetail({ teamId, isUser, onBack }: { teamId: string; isUser:
   const [statModal, setStatModal] = useState<keyof typeof STAT_META | null>(null);
   const [memberPage, setMemberPage] = useState(1);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [memberTab, setMemberTab] = useState<"inProgress" | "completed">("inProgress");
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -121,14 +146,20 @@ export function TeamDetail({ teamId, isUser, onBack }: { teamId: string; isUser:
     : null;
 
   if (selectedMember?.user && selectedMember.stat) {
+    // Includes archived tasks — archiving only ever applies to completed
+    // work, so it never affects which tasks land in the "not completed"
+    // bucket below.
     const memberTasks = perf.tasks.filter((t) => t.assignees.some((a) => a.id === selectedMemberId));
+    const memberCompletedTasks = memberTasks.filter((t) => t.status === "completed");
+    const memberInProgressTasks = memberTasks.filter((t) => t.status !== "completed");
     const stat = selectedMember.stat;
     const memberStatCards = [
-      { label: "Open", value: stat.openCount, color: "#0284c7", dark: "#075985", bg: "#f0f9ff", border: "#bae6fd" },
-      { label: "Completed", value: stat.completedCount, color: "#15803d", dark: "#14532d", bg: "#f0fdf4", border: "#bbf7d0" },
+      { label: "All Task", value: memberTasks.length, color: "#0284c7", dark: "#075985", bg: "#f0f9ff", border: "#bae6fd" },
+      { label: "Completed", value: memberCompletedTasks.length, color: "#15803d", dark: "#14532d", bg: "#f0fdf4", border: "#bbf7d0" },
       { label: "Late", value: stat.lateCount, color: "#b91c1c", dark: "#7f1d1d", bg: "#fef2f2", border: "#fecaca" },
       { label: "On-time", value: `${stat.onTimeRate}%`, color: "#7c3aed", dark: "#5b21b6", bg: "#f5f3ff", border: "#ddd6fe" },
     ];
+    const memberTabTasks = memberTab === "inProgress" ? memberInProgressTasks : memberCompletedTasks;
     const ringCirc = 2 * Math.PI * 50;
     return (
       <div>
@@ -174,18 +205,65 @@ export function TeamDetail({ teamId, isUser, onBack }: { teamId: string; isUser:
           ))}
         </div>
 
-        <div className="card overflow-hidden">
-          <div className="px-5 py-3.5 border-b font-bold text-[14.5px]" style={{ borderColor: "#f0f3f2" }}>Assigned tasks</div>
-          {memberTasks.map((t) => (
-            <div key={t.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-3.5 px-5 py-3 border-b items-center cursor-pointer hover:bg-[#f8faf9]" style={{ borderColor: "#f4f6f5" }} onClick={() => setOpenTaskId(t.id)}>
-              <div className="text-[13.5px] font-medium min-w-0 whitespace-nowrap overflow-hidden text-ellipsis">{t.title}</div>
-              <div style={{ width: 120 }}><span className={statusBadgeClass(t.status)}>{statusLabel(t.status)}</span></div>
-              <div className="capitalize text-[13px]" style={{ width: 80, color: "#5c6a67" }}>{t.priority}</div>
-              <div className="text-right font-mono text-xs" style={{ width: 70, color: "#5c6a67" }}>{dueText(t.dueDate)}</div>
-            </div>
-          ))}
-          {memberTasks.length === 0 && <div className="p-6 text-center text-[13px]" style={{ color: "#8a968f" }}>No tasks assigned to this member.</div>}
+        <div className="flex gap-1.5 rounded-[11px] p-1 mb-3.5 w-fit" style={{ background: "#eef1f0" }}>
+          <button onClick={() => setMemberTab("inProgress")} className="px-4 py-2 rounded-lg text-[12.5px] font-semibold border-none cursor-pointer" style={{ background: memberTab === "inProgress" ? "#fff" : "transparent", color: memberTab === "inProgress" ? "#1e3a8a" : "#8a968f", boxShadow: memberTab === "inProgress" ? "0 1px 2px rgba(0,0,0,.08)" : "none" }}>
+            In Progress
+          </button>
+          <button onClick={() => setMemberTab("completed")} className="px-4 py-2 rounded-lg text-[12.5px] font-semibold border-none cursor-pointer" style={{ background: memberTab === "completed" ? "#fff" : "transparent", color: memberTab === "completed" ? "#1e3a8a" : "#8a968f", boxShadow: memberTab === "completed" ? "0 1px 2px rgba(0,0,0,.08)" : "none" }}>
+            Completed
+          </button>
         </div>
+
+        <div className="card overflow-hidden mb-4.5">
+          <div className="px-5 py-3.5 border-b font-bold text-[14.5px]" style={{ borderColor: "#f0f3f2" }}>
+            {memberTab === "inProgress" ? "In progress tasks" : "Completed tasks"}
+          </div>
+          {memberTabTasks.map((t) => {
+            const showAdminCols = memberTab === "completed" && user?.admin;
+            const score = showAdminCols ? memberTaskScore(t, selectedMemberId!) : null;
+            const rejections = showAdminCols ? taskRejectionCount(t) : 0;
+            return (
+              <div
+                key={t.id}
+                className="grid gap-3.5 px-5 py-3 border-b items-center cursor-pointer hover:bg-[#f8faf9]"
+                style={{ borderColor: "#f4f6f5", gridTemplateColumns: showAdminCols ? "1fr auto auto auto auto" : "1fr auto auto" }}
+                onClick={() => setOpenTaskId(t.id)}
+              >
+                <div className="text-[13.5px] font-medium min-w-0 whitespace-nowrap overflow-hidden text-ellipsis">{t.title}</div>
+                {showAdminCols && (
+                  <div className="text-right" style={{ width: 92 }}>
+                    {score != null ? (
+                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10.5px] font-mono font-semibold" style={{ background: scoreBadgeStyle(score).bg, color: scoreBadgeStyle(score).color }} title="Task score">
+                        {score.toFixed(2)}/10.00
+                      </span>
+                    ) : (
+                      <span className="font-mono text-xs" style={{ color: "#96a19d" }}>—</span>
+                    )}
+                  </div>
+                )}
+                {showAdminCols && (
+                  <div className="text-right font-mono text-xs" style={{ width: 78, color: rejections > 0 ? "#b91c1c" : "#96a19d" }} title="Times rejected">
+                    {rejections} rejected
+                  </div>
+                )}
+                <div className="capitalize text-[13px]" style={{ width: 80, color: "#5c6a67" }}>{t.priority}</div>
+                <div className="text-right font-mono text-xs" style={{ width: 70, color: "#5c6a67" }}>{dueText(t.dueDate)}</div>
+              </div>
+            );
+          })}
+          {memberTabTasks.length === 0 && (
+            <div className="p-6 text-center text-[13px]" style={{ color: "#8a968f" }}>
+              {memberTab === "inProgress" ? "No in-progress tasks for this member." : "No completed tasks for this member yet."}
+            </div>
+          )}
+        </div>
+
+        {memberTab === "completed" && user?.admin && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+            <CompletionRateChart data={stat.completionTrend} title="Completion rate" subtitle={`${selectedMember.user.name} — trailing 8 weeks`} />
+            <AvgScoreChart data={stat.completionTrend} title="Average task score" subtitle={`${selectedMember.user.name} — trailing 8 weeks`} />
+          </div>
+        )}
         <TaskDrawer taskId={openTaskId} onClose={() => setOpenTaskId(null)} onChanged={refresh} />
       </div>
     );
@@ -397,7 +475,7 @@ export function TeamDetail({ teamId, isUser, onBack }: { teamId: string; isUser:
               <div>Member</div><div>Assigned</div><div>Completed</div><div>On-time</div><div className="text-right">Late</div>
             </div>
             {pagedMembers.map((m) => (
-              <div key={m.user.id} className="grid gap-3 px-4.5 py-3.5 border-b items-center cursor-pointer hover:bg-[#f8faf9]" style={{ gridTemplateColumns: "2.2fr 1fr 1fr 1.4fr 0.8fr", borderColor: "#f0f3f2" }} onClick={() => setSelectedMemberId(m.user.id)}>
+              <div key={m.user.id} className="grid gap-3 px-4.5 py-3.5 border-b items-center cursor-pointer hover:bg-[#f8faf9]" style={{ gridTemplateColumns: "2.2fr 1fr 1fr 1.4fr 0.8fr", borderColor: "#f0f3f2" }} onClick={() => { setSelectedMemberId(m.user.id); setMemberTab("inProgress"); }}>
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="w-[34px] h-[34px] flex-none rounded-full flex items-center justify-center font-mono font-semibold text-xs" style={{ background: m.completedCount > 0 ? "#dbeafe" : "#eef1f0", color: m.completedCount > 0 ? "#1e3a8a" : "#5c6a67" }}>
                     {initials(m.user.name)}

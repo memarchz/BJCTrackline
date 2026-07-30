@@ -101,6 +101,7 @@ export interface TeamMemberStat {
   lateCount: number;
   openCount: number;
   onTimeRate: number;
+  completionTrend: { label: string; onTimeRate: number; lateRate: number; avgScore: number }[];
 }
 
 export interface TeamPerformance {
