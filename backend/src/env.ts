@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import path from 'node:path';
 
 function required(name: string): string {
   const value = process.env[name];
@@ -15,6 +16,12 @@ export const env = {
   // Base URL of the deployed frontend — used to build links back into the
   // app from emails (e.g. "View task" in a nudge email).
   frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:3000',
+  // Where task attachments are stored on disk. In production this must be a
+  // path outside the app's own deploy/release directory (e.g. a persistent
+  // volume like /var/lib/bjc-trackline/uploads) so it survives redeploys and
+  // isn't wiped when a new release is unpacked. Defaults to ./uploads next to
+  // the running process for local dev only.
+  uploadsDir: process.env.UPLOADS_DIR ?? path.join(process.cwd(), 'uploads'),
   // Optional — email sending (e.g. task nudges) is skipped with a warning
   // when these aren't set, rather than failing the request.
   smtp: {

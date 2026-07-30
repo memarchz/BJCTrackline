@@ -3,3 +3,7 @@ dist
 .env
 .env.local
 *.log
+
+# Local-dev fallback for UPLOADS_DIR — real deployments point this at a
+# persistent path outside the repo instead (see .env.example).
+/uploads

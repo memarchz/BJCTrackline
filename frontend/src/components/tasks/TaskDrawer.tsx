@@ -418,33 +418,21 @@ function SubtaskCard({
 }
 
 function AttachmentRow({ taskId, attachmentId, name, ts }: { taskId: string; attachmentId: string; name: string; ts: string }) {
-  const [loading, setLoading] = useState(false);
-
-  async function open() {
-    // Open the tab synchronously (within the click gesture) so popup blockers
-    // don't intervene, then navigate it once the signed URL resolves.
-    const tab = window.open("", "_blank");
+  function open() {
+    const tab = window.open(getAttachmentDownloadUrl(taskId, attachmentId), "_blank");
     if (tab) tab.opener = null;
-    setLoading(true);
-    try {
-      const url = await getAttachmentDownloadUrl(taskId, attachmentId);
-      if (tab) tab.location.href = url;
-    } finally {
-      setLoading(false);
-    }
   }
 
   return (
     <button
       type="button"
       onClick={open}
-      disabled={loading}
       className="flex items-center gap-2.5 px-2.5 py-2 bg-white border rounded-[9px] mb-2 w-full text-left cursor-pointer"
       style={{ borderColor: "#e3e8e6" }}
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth={1.6}><path d="M14 3v5h5" /><path d="M6 3h8l5 5v13H6z" /></svg>
       <span className="text-[12.5px] min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{name}</span>
-      <span className="font-mono ml-auto" style={{ fontSize: 10.5, color: "#96a19d" }}>{loading ? "Opening…" : relativeTime(ts)}</span>
+      <span className="font-mono ml-auto" style={{ fontSize: 10.5, color: "#96a19d" }}>{relativeTime(ts)}</span>
     </button>
   );
 }

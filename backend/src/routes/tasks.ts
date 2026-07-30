@@ -8,7 +8,7 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { HttpError } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/auth';
 import { taskInclude, serializeTask, isOverdue, getViewerContext, type TaskWithRelations } from '../utils/serializeTask';
-import { uploadAttachment, deleteAttachment, getAttachmentDownloadUrl } from '../utils/r2';
+import { uploadAttachment, deleteAttachment, attachmentFilePath } from '../utils/fileStorage';
 import { sendMail, nudgeEmailHtml } from '../utils/mailer';
 import { env } from '../env';
 
@@ -296,7 +296,7 @@ router.post(
     if (!req.file) throw new HttpError(400, 'No file uploaded');
 
     const key = `tasks/${task.id}/${crypto.randomUUID()}-${req.file.originalname}`;
-    await uploadAttachment(key, req.file.buffer, req.file.mimetype);
+    await uploadAttachment(key, req.file.buffer);
 
     await prisma.attachment.create({
       data: { taskId: task.id, name: req.file.originalname, key, uploadedById: user.id },
@@ -305,15 +305,29 @@ router.post(
   }),
 );
 
+// RFC 6266 inline disposition with a UTF-8 filename fallback — `res.download`
+// always forces `Content-Disposition: attachment`, which makes the browser
+// silently save the file instead of showing it in the tab window.open()
+// navigated to (the whole point for an image/PDF preview).
+function inlineDisposition(filename: string): string {
+  const asciiFallback = filename.replace(/["\\]/g, '_').replace(/[^\x20-\x7E]/g, '_');
+  return `inline; filename="${asciiFallback}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
+}
+
+// Streams the file straight from disk — checked on every request (not a
+// signed one-time URL), since a plain file path has no built-in expiry.
 router.get(
-  '/:id/attachments/:attachmentId/download-url',
+  '/:id/attachments/:attachmentId/download',
   asyncHandler(async (req, res) => {
     const task = await requireTask(req.params.id);
+    if (!canViewTask(task, req.user!)) throw new HttpError(403, "You don't have access to this task");
     const attachment = task.attachments.find((a) => a.id === req.params.attachmentId);
     if (!attachment) throw new HttpError(404, 'Attachment not found');
 
-    const url = await getAttachmentDownloadUrl(attachment.key);
-    res.json({ url });
+    res.setHeader('Content-Disposition', inlineDisposition(attachment.name));
+    res.sendFile(attachmentFilePath(attachment.key), (err) => {
+      if (err && !res.headersSent) res.status(404).json({ error: 'File not found on disk' });
+    });
   }),
 );
 

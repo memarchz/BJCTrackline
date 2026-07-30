@@ -69,6 +69,8 @@ model Team {
   members       User[]
   tasks         Task[]
   conversation  Conversation?
+
+  @@map("TL_Team")
 }
 
 model User {
@@ -135,6 +137,7 @@ model Task {
   @@index([teamId])
   @@index([status])
   @@index([dueDate])
+  @@map("TL_Task")
 }
 
 model TaskAssignee {
@@ -148,6 +151,7 @@ model TaskAssignee {
   nudgedAt DateTime?
 
   @@id([taskId, userId])
+  @@map("TL_TaskAssignee")
 }
 
 model Subtask {
@@ -172,6 +176,8 @@ model Subtask {
   rejectReason  String?
 
   log TaskLogEntry[]
+
+  @@map("TL_Subtask")
 }
 
 model TaskLogEntry {
@@ -191,6 +197,7 @@ model TaskLogEntry {
 
   @@index([taskId])
   @@index([subtaskId])
+  @@map("TL_TaskLogEntry")
 }
 
 model Attachment {
@@ -205,6 +212,8 @@ model Attachment {
 
   uploadedBy   User   @relation(fields: [uploadedById], references: [id])
   uploadedById String
+
+  @@map("TL_Attachment")
 }
 
 model StarredTask {
@@ -215,6 +224,7 @@ model StarredTask {
   starredAt DateTime @default(now())
 
   @@id([userId, taskId])
+  @@map("TL_StarredTask")
 }
 
 model TorRequest {
@@ -238,6 +248,8 @@ model TorRequest {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("TL_TorRequest")
 }
 
 model Conversation {
@@ -259,6 +271,7 @@ model Conversation {
   reads    ConversationRead[]
 
   @@unique([dmUserAId, dmUserBId])
+  @@map("TL_Conversation")
 }
 
 model ConversationRead {
@@ -269,6 +282,7 @@ model ConversationRead {
   lastReadAt     DateTime     @default(now())
 
   @@id([conversationId, userId])
+  @@map("TL_ConversationRead")
 }
 
 model Message {
@@ -283,6 +297,7 @@ model Message {
   fromId String
 
   @@index([conversationId])
+  @@map("TL_Message")
 }
 
 model Notification {
@@ -296,4 +311,5 @@ model Notification {
   userId String
 
   @@index([userId])
+  @@map("TL_Notification")
 }

@@ -102,8 +102,10 @@ export async function deleteAttachment(taskId: string, attachmentId: string): Pr
   return (await api.delete(`/tasks/${taskId}/attachments/${attachmentId}`)).data.task;
 }
 
-export async function getAttachmentDownloadUrl(taskId: string, attachmentId: string): Promise<string> {
-  return (await api.get(`/tasks/${taskId}/attachments/${attachmentId}/download-url`)).data.url;
+// The backend streams the file directly (checked on every request), so this
+// is just the URL to navigate to — no round trip needed to "get" it first.
+export function getAttachmentDownloadUrl(taskId: string, attachmentId: string): string {
+  return `${api.defaults.baseURL ?? ""}/tasks/${taskId}/attachments/${attachmentId}/download`;
 }
 
 export async function bulkStart(ids: string[]): Promise<number> {
