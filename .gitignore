@@ -30,3 +30,6 @@ build/
 *.log
 .DS_Store
 *.tsbuildinfo
+
+# Microsoft Office temp/lock files (created while a .docx/.xlsx is open).
+~$*
