@@ -6,6 +6,13 @@
 # Stray local binary, not part of the project.
 claude.exe
 
+# AI-agent instruction files — internal tooling notes, not project docs
+# (README.md files and other real documentation are still tracked).
+CLAUDE.md
+AGENTS.md
+**/CLAUDE.md
+**/AGENTS.md
+
 # Dependencies / build output (frontend and backend also have their own
 # .gitignore, but keep this here too since git init is at the repo root).
 node_modules/
