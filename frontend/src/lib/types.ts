@@ -101,14 +101,10 @@ export interface TeamMemberStat {
   lateCount: number;
   openCount: number;
   onTimeRate: number;
-  completionTrend: { label: string; onTimeRate: number; lateRate: number; avgScore: number }[];
 }
 
 export interface TeamPerformance {
   stats: { total: number; completed: number; inProgress: number; overdue: number; lateCount: number; onTimeRate: number };
-  // Per week (not cumulative), aggregated across the whole team — same
-  // definitions as the personal Dashboard's charts (see DashboardData).
-  completionTrend: { label: string; onTimeRate: number; lateRate: number; avgScore: number }[];
   top3: TeamMemberStat[];
   members: TeamMemberStat[];
   tasks: Task[];
@@ -160,13 +156,20 @@ export interface Notification {
 export interface DashboardData {
   stats: Record<string, number>;
   priorityDistribution: { high: number; medium: number; low: number };
-  // Per week (not cumulative), all 0-100 except avgScore: onTimeRate and
-  // lateRate are both against the same denominator (tasks due that week) —
-  // lateRate is shown for context only and never folds into "completion
-  // rate," which credits on-time work alone. avgScore is 0-10, 2 decimals
-  // (average task score among tasks completed that week, on-time or late).
-  completionTrend: { label: string; onTimeRate: number; lateRate: number; avgScore: number }[];
   dueSoon: Task[];
   recentActivity: { id: string; ts: string; action: TaskLogAction; note: string | null; by: UserSummary; task: { id: string; title: string } }[];
   upcomingForMe: Task[];
+}
+
+// Per week (not cumulative) within the selected month, all 0-100 except
+// avgScore: onTimeRate and lateRate are both against the same denominator
+// (tasks due that week) — lateRate is shown for context only and never
+// folds into "completion rate," which credits on-time work alone. avgScore
+// is 0-10, 2 decimals (average task score among tasks completed that week,
+// on-time or late).
+export interface CompletionTrendPoint {
+  label: string;
+  onTimeRate: number;
+  lateRate: number;
+  avgScore: number;
 }

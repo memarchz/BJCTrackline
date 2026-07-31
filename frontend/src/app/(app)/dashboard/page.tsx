@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import type { DashboardData } from "@/lib/types";
+import type { CompletionTrendPoint, DashboardData } from "@/lib/types";
+import { currentMonthStr, monthLabel, shiftMonth } from "@/lib/month";
 import { dueText, priorityBadgeClass, capitalize, relativeTime, monthDay, statusLabel, daysUntil } from "@/lib/format";
 import { StatCard, type StatCardData } from "@/components/dashboard/StatCard";
 import { CompletionRateChart } from "@/components/dashboard/CompletionRateChart";
@@ -56,6 +57,8 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState(false);
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
+  const [trendMonth, setTrendMonth] = useState(currentMonthStr());
+  const [trend, setTrend] = useState<CompletionTrendPoint[]>([]);
 
   function refresh() {
     return api
@@ -78,6 +81,21 @@ export default function DashboardPage() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get<{ month: string; completionTrend: CompletionTrendPoint[] }>("/dashboard/completion-trend", { params: { month: trendMonth } })
+      .then((res) => {
+        if (!cancelled) setTrend(res.data.completionTrend);
+      })
+      .catch(() => {
+        if (!cancelled) setTrend([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [trendMonth]);
 
   if (error) return <div className="card p-8 text-center text-sm" style={{ color: "#b91c1c" }}>Couldn&apos;t load the dashboard. Please try again.</div>;
   if (!data || !user) return <div className="text-sm" style={{ color: "#5c6a67" }}>Loading…</div>;
@@ -144,8 +162,40 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4">
         <div className="flex flex-col gap-4">
-          <CompletionRateChart data={data.completionTrend} />
-          <AvgScoreChart data={data.completionTrend} />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setTrendMonth((m) => shiftMonth(m, -1))}
+              className="w-8 h-8 rounded-lg border flex items-center justify-center cursor-pointer hover:bg-[#f8faf9]"
+              style={{ borderColor: "#e3e8e6" }}
+              aria-label="Previous month"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M15 6l-6 6 6 6" /></svg>
+            </button>
+            <input
+              type="month"
+              className="input"
+              style={{ width: "auto" }}
+              value={trendMonth}
+              max={currentMonthStr()}
+              onChange={(e) => e.target.value && setTrendMonth(e.target.value)}
+            />
+            <button
+              onClick={() => setTrendMonth((m) => shiftMonth(m, 1))}
+              disabled={trendMonth >= currentMonthStr()}
+              className="w-8 h-8 rounded-lg border flex items-center justify-center hover:bg-[#f8faf9] disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ borderColor: "#e3e8e6", cursor: trendMonth >= currentMonthStr() ? "default" : "pointer" }}
+              aria-label="Next month"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M9 6l6 6-6 6" /></svg>
+            </button>
+            {trendMonth !== currentMonthStr() && (
+              <button onClick={() => setTrendMonth(currentMonthStr())} className="bg-transparent border-none cursor-pointer text-xs font-semibold p-0" style={{ color: "#2563eb" }}>
+                This month
+              </button>
+            )}
+          </div>
+          <CompletionRateChart data={trend} subtitle={`${monthLabel(trendMonth)} — on-time vs. late`} />
+          <AvgScoreChart data={trend} subtitle={monthLabel(trendMonth)} />
         </div>
         <div className="card p-4">
           <div className="font-semibold text-[15px] mb-2.5">Priority mix</div>

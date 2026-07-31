@@ -75,13 +75,63 @@ router.get(
       low: tasks.filter((t) => t.priority === 'low').length,
     };
 
-    // Per-week (non-cumulative) chart data — completion rate and average
-    // score — both over 8 trailing 7-day windows labeled W1..W7, Now.
-    // Bucketed at the unit-of-work level — a whole task with no subtasks, or
-    // a single subtask — since that's the level a score exists at (see
-    // computeScore in serializeTask.ts). Someone assigned the whole task is
-    // treated as responsible for every subtask under it, not just their own;
-    // a subtask-only assignee is only responsible for their own.
+    const recentLog = await prisma.taskLogEntry.findMany({
+      where: {
+        task: { OR: [{ assignees: { some: { userId: user.id } } }, { subtasks: { some: { assigneeId: user.id } } }] },
+      },
+      include: { by: { select: userSummarySelect }, task: { select: { id: true, title: true } } },
+      orderBy: { ts: 'desc' },
+      take: 10,
+    });
+
+    const upcomingForMe = ctx
+      .filter((c) => ['todo', 'in_progress'].includes(c.status))
+      .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
+      .slice(0, 6);
+
+    // Preload all profiles
+    await preloadProfilesForTasks(tasks);
+    await preloadProfilesForTasks(dueSoonCtx.map((c) => c.task));
+    await preloadProfilesForTasks(upcomingForMe.map((c) => c.task));
+    await resolveUserProfiles(recentLog.map((l) => l.byId));
+
+    res.json({
+      stats,
+      priorityDistribution,
+      dueSoon: dueSoonCtx.slice(0, 8).map((c) => serializeTask(c.task, user.id, user.isAdmin)),
+      recentActivity: recentLog.map((l) => ({
+        id: l.id,
+        ts: l.ts,
+        action: l.action,
+        note: l.note,
+        by: toUserSummary(l.by, resolveUserProfileSync(l.byId)),
+        task: l.task,
+      })),
+      upcomingForMe: upcomingForMe.map((c) => serializeTask(c.task, user.id, user.isAdmin)),
+    });
+  }),
+);
+
+// Per-week (non-cumulative) chart data — completion rate and average score —
+// for a single calendar month, picked via ?month=YYYY-MM (defaults to the
+// current month). Bucketed at the unit-of-work level — a whole task with no
+// subtasks, or a single subtask — since that's the level a score exists at
+// (see computeScore in serializeTask.ts). Someone assigned the whole task is
+// treated as responsible for every subtask under it, not just their own; a
+// subtask-only assignee is only responsible for their own.
+router.get(
+  '/completion-trend',
+  asyncHandler(async (req, res) => {
+    const user = req.user!;
+    const now = new Date();
+    const monthParam = typeof req.query.month === 'string' ? req.query.month : undefined;
+    const match = monthParam?.match(/^(\d{4})-(\d{2})$/);
+    const year = match ? Number(match[1]) : now.getFullYear();
+    const monthIndex = match ? Number(match[2]) - 1 : now.getMonth();
+
+    const rangeStart = new Date(year, monthIndex, 1);
+    const rangeEnd = new Date(year, monthIndex + 1, 1);
+
     interface WorkUnit {
       dueDate: Date;
       completed: boolean;
@@ -152,13 +202,13 @@ router.get(
     // due that week), so the two segments stack to show the full picture —
     // but the late slice is purely visual context: it's never folded into
     // "completion rate," which only credits on-time work.
+    const shortDate = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const completionTrend: { label: string; onTimeRate: number; lateRate: number; avgScore: number }[] = [];
-    for (let i = 7; i >= 0; i--) {
-      const bucketEnd = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
-      const bucketStart = new Date(bucketEnd.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const dueInBucket = units.filter((u) => u.dueDate > bucketStart && u.dueDate <= bucketEnd);
+    for (let bucketStart = new Date(rangeStart); bucketStart < rangeEnd; ) {
+      const bucketEnd = new Date(Math.min(bucketStart.getTime() + 7 * 24 * 60 * 60 * 1000, rangeEnd.getTime()));
+      const dueInBucket = units.filter((u) => u.dueDate >= bucketStart && u.dueDate < bucketEnd);
       const completedInBucket = units.filter(
-        (u) => u.completed && u.reviewDate && u.reviewDate > bucketStart && u.reviewDate <= bucketEnd,
+        (u) => u.completed && u.reviewDate && u.reviewDate >= bucketStart && u.reviewDate < bucketEnd,
       );
       const onTimeInBucket = completedInBucket.filter((u) => u.late === false);
       const lateInBucket = completedInBucket.filter((u) => u.late === true);
@@ -166,44 +216,11 @@ router.get(
       const lateRate = dueInBucket.length ? Math.round((lateInBucket.length / dueInBucket.length) * 1000) / 10 : 0;
       const scored = completedInBucket.map((u) => u.score).filter((s): s is number => s != null);
       const avgScore = scored.length ? Math.round((scored.reduce((a, b) => a + b, 0) / scored.length) * 100) / 100 : 0;
-      completionTrend.push({ label: i === 0 ? 'Now' : `W${7 - i + 1}`, onTimeRate, lateRate, avgScore });
+      completionTrend.push({ label: shortDate(bucketStart), onTimeRate, lateRate, avgScore });
+      bucketStart = bucketEnd;
     }
 
-    const recentLog = await prisma.taskLogEntry.findMany({
-      where: {
-        task: { OR: [{ assignees: { some: { userId: user.id } } }, { subtasks: { some: { assigneeId: user.id } } }] },
-      },
-      include: { by: { select: userSummarySelect }, task: { select: { id: true, title: true } } },
-      orderBy: { ts: 'desc' },
-      take: 10,
-    });
-
-    const upcomingForMe = ctx
-      .filter((c) => ['todo', 'in_progress'].includes(c.status))
-      .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
-      .slice(0, 6);
-
-    // Preload all profiles
-    await preloadProfilesForTasks(tasks);
-    await preloadProfilesForTasks(dueSoonCtx.map((c) => c.task));
-    await preloadProfilesForTasks(upcomingForMe.map((c) => c.task));
-    await resolveUserProfiles(recentLog.map((l) => l.byId));
-
-    res.json({
-      stats,
-      priorityDistribution,
-      completionTrend,
-      dueSoon: dueSoonCtx.slice(0, 8).map((c) => serializeTask(c.task, user.id, user.isAdmin)),
-      recentActivity: recentLog.map((l) => ({
-        id: l.id,
-        ts: l.ts,
-        action: l.action,
-        note: l.note,
-        by: toUserSummary(l.by, resolveUserProfileSync(l.byId)),
-        task: l.task,
-      })),
-      upcomingForMe: upcomingForMe.map((c) => serializeTask(c.task, user.id, user.isAdmin)),
-    });
+    res.json({ month: `${year}-${String(monthIndex + 1).padStart(2, '0')}`, completionTrend });
   }),
 );
 
