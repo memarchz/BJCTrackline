@@ -17,7 +17,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     if (!token) return res.status(401).json({ error: 'Not authenticated' });
 
     const payload = verifyToken(token);
-    const user = await prisma.user.findUnique({
+    const user = await prisma.tlRole.findUnique({
       where: { empNo: payload.sub },
       select: { empNo: true, isAdmin: true },
     });

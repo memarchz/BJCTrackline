@@ -32,16 +32,14 @@ router.get(
     const teamConvos = await prisma.conversation.findMany({
       where: { kind: 'team', ...(user.isAdmin ? {} : { teamId: user.teamId ?? '__none__' }) },
       include: {
-        messages: { orderBy: { ts: 'desc' }, take: 200, select: { id: true, text: true, ts: true, fromId: true, from: { select: userSummarySelect } } },
+        messages: { orderBy: { ts: 'desc' }, take: 200, select: { id: true, text: true, ts: true, fromId: true } },
       },
     });
 
     const dmConvos = await prisma.conversation.findMany({
       where: { kind: 'dm', OR: [{ dmUserAId: user.id }, { dmUserBId: user.id }] },
       include: {
-        dmUserA: { select: userSummarySelect },
-        dmUserB: { select: userSummarySelect },
-        messages: { orderBy: { ts: 'desc' }, take: 200, select: { id: true, text: true, ts: true, fromId: true, from: { select: userSummarySelect } } },
+        messages: { orderBy: { ts: 'desc' }, take: 200, select: { id: true, text: true, ts: true, fromId: true } },
       },
     });
 
@@ -78,13 +76,12 @@ router.get(
         name: c.teamId || '',
         teamId: c.teamId,
         lastMessage: c.messages[0]
-          ? { text: c.messages[0].text, ts: c.messages[0].ts, from: toUserSummary(c.messages[0].from, resolveUserProfileSync(c.messages[0].fromId)) }
+          ? { text: c.messages[0].text, ts: c.messages[0].ts, from: toUserSummary(resolveUserProfileSync(c.messages[0].fromId)) }
           : null,
         unreadCount: unreadCount(c.id, c.messages),
       })),
       ...dmConvos.map((c) => {
-        const other = c.dmUserAId === user.id ? c.dmUserB : c.dmUserA;
-        const otherId = other!.empNo;
+        const otherId = c.dmUserAId === user.id ? c.dmUserBId! : c.dmUserAId!;
         const otherRead = (readsByConvo.get(c.id) ?? []).find((r) => r.userId === otherId);
         const resolvedOther = resolveUserProfileSync(otherId);
         return {
@@ -93,7 +90,7 @@ router.get(
           name: resolvedOther.name,
           userId: otherId,
           lastMessage: c.messages[0]
-            ? { text: c.messages[0].text, ts: c.messages[0].ts, from: toUserSummary(c.messages[0].from, resolveUserProfileSync(c.messages[0].fromId)) }
+            ? { text: c.messages[0].text, ts: c.messages[0].ts, from: toUserSummary(resolveUserProfileSync(c.messages[0].fromId)) }
             : null,
           unreadCount: unreadCount(c.id, c.messages),
           otherReadAt: otherRead?.lastReadAt ?? null,
@@ -114,7 +111,6 @@ router.get(
 
     const messages = await prisma.message.findMany({
       where: { conversationId: convo.id },
-      include: { from: { select: userSummarySelect } },
       orderBy: { ts: 'asc' },
     });
 
@@ -133,7 +129,7 @@ router.get(
     }
 
     res.json({
-      messages: messages.map((m) => ({ id: m.id, text: m.text, ts: m.ts, from: toUserSummary(m.from, resolveUserProfileSync(m.fromId)) })),
+      messages: messages.map((m) => ({ id: m.id, text: m.text, ts: m.ts, from: toUserSummary(resolveUserProfileSync(m.fromId)) })),
       otherReadAt,
     });
   }),
@@ -166,12 +162,11 @@ router.post(
 
     const message = await prisma.message.create({
       data: { conversationId: convo.id, fromId: req.user!.id, text },
-      include: { from: { select: userSummarySelect } },
     });
 
     await resolveUserProfiles([message.fromId]);
 
-    res.status(201).json({ message: { id: message.id, text: message.text, ts: message.ts, from: toUserSummary(message.from, resolveUserProfileSync(message.fromId)) } });
+    res.status(201).json({ message: { id: message.id, text: message.text, ts: message.ts, from: toUserSummary(resolveUserProfileSync(message.fromId)) } });
   }),
 );
 

@@ -150,11 +150,26 @@ const createTaskSchema = z
     { message: 'Assign at least one person — to the task or to a subtask.', path: ['assigneeIds'] },
   );
 
+async function ensureUsersExist(empNos: string[]) {
+  const unique = Array.from(new Set(empNos.filter(Boolean)));
+  if (unique.length === 0) return;
+  await prisma.tlRole.createMany({
+    data: unique.map((empNo) => ({ empNo, isAdmin: false })),
+    skipDuplicates: true,
+  });
+}
+
 router.post(
   '/',
   asyncHandler(async (req, res) => {
     const body = createTaskSchema.parse(req.body);
     const user = req.user!;
+
+    const empNosToEnsure = [
+      ...(body.assigneeIds ?? []),
+      ...(body.subtasks ?? []).map((s) => s.assigneeId).filter((id): id is string => !!id),
+    ];
+    await ensureUsersExist(empNosToEnsure);
 
     const task = await prisma.task.create({
       data: {
@@ -371,6 +386,74 @@ router.delete(
       .delete({ where: { userId_taskId: { userId: req.user!.id, taskId: req.params.id } } })
       .catch(() => undefined);
     res.status(204).end();
+  }),
+);
+
+const bulkIdsSchema = z.object({ ids: z.array(z.string()).min(1) });
+
+router.post(
+  '/bulk/start',
+  asyncHandler(async (req, res) => {
+    const { ids } = bulkIdsSchema.parse(req.body);
+    const user = req.user!;
+    const tasks = await prisma.task.findMany({
+      where: { id: { in: ids }, status: 'todo', assignees: { some: { userId: user.id } } },
+    });
+    await prisma.$transaction(
+      tasks.map((t) =>
+        prisma.task.update({
+          where: { id: t.id },
+          data: { status: 'in_progress', log: { create: { action: 'started', byId: user.id, note: 'Marked in progress' } } },
+        }),
+      ),
+    );
+    res.json({ updated: tasks.length });
+  }),
+);
+
+router.post(
+  '/bulk/rework',
+  asyncHandler(async (req, res) => {
+    const { ids } = bulkIdsSchema.parse(req.body);
+    const user = req.user!;
+    const tasks = await prisma.task.findMany({
+      where: { id: { in: ids }, status: 'rejected', assignees: { some: { userId: user.id } } },
+    });
+    await prisma.$transaction(
+      tasks.map((t) =>
+        prisma.task.update({
+          where: { id: t.id },
+          data: {
+            status: 'in_progress',
+            submittedDate: null,
+            reviewDate: null,
+            late: null,
+            log: { create: { action: 'reworked', byId: user.id, note: 'Moved back to in progress for rework' } },
+          },
+        }),
+      ),
+    );
+    res.json({ updated: tasks.length });
+  }),
+);
+
+router.post(
+  '/bulk/archive',
+  asyncHandler(async (req, res) => {
+    const { ids } = bulkIdsSchema.parse(req.body);
+    const user = req.user!;
+    const tasks = await prisma.task.findMany({
+      where: { id: { in: ids }, status: 'completed', assignees: { some: { userId: user.id } } },
+    });
+    await prisma.$transaction(
+      tasks.map((t) =>
+        prisma.task.update({
+          where: { id: t.id },
+          data: { archived: true, log: { create: { action: 'archived', byId: user.id, note: 'Archived' } } },
+        }),
+      ),
+    );
+    res.json({ updated: tasks.length });
   }),
 );
 
@@ -733,74 +816,6 @@ router.post(
       });
     }
     res.json({ task: serializeTask(await requireTask(task.id), user.id, user.isAdmin) });
-  }),
-);
-
-const bulkIdsSchema = z.object({ ids: z.array(z.string()).min(1) });
-
-router.post(
-  '/bulk/start',
-  asyncHandler(async (req, res) => {
-    const { ids } = bulkIdsSchema.parse(req.body);
-    const user = req.user!;
-    const tasks = await prisma.task.findMany({
-      where: { id: { in: ids }, status: 'todo', assignees: { some: { userId: user.id } } },
-    });
-    await prisma.$transaction(
-      tasks.map((t) =>
-        prisma.task.update({
-          where: { id: t.id },
-          data: { status: 'in_progress', log: { create: { action: 'started', byId: user.id, note: 'Marked in progress' } } },
-        }),
-      ),
-    );
-    res.json({ updated: tasks.length });
-  }),
-);
-
-router.post(
-  '/bulk/rework',
-  asyncHandler(async (req, res) => {
-    const { ids } = bulkIdsSchema.parse(req.body);
-    const user = req.user!;
-    const tasks = await prisma.task.findMany({
-      where: { id: { in: ids }, status: 'rejected', assignees: { some: { userId: user.id } } },
-    });
-    await prisma.$transaction(
-      tasks.map((t) =>
-        prisma.task.update({
-          where: { id: t.id },
-          data: {
-            status: 'in_progress',
-            submittedDate: null,
-            reviewDate: null,
-            late: null,
-            log: { create: { action: 'reworked', byId: user.id, note: 'Moved back to in progress for rework' } },
-          },
-        }),
-      ),
-    );
-    res.json({ updated: tasks.length });
-  }),
-);
-
-router.post(
-  '/bulk/archive',
-  asyncHandler(async (req, res) => {
-    const { ids } = bulkIdsSchema.parse(req.body);
-    const user = req.user!;
-    const tasks = await prisma.task.findMany({
-      where: { id: { in: ids }, status: 'completed', assignees: { some: { userId: user.id } } },
-    });
-    await prisma.$transaction(
-      tasks.map((t) =>
-        prisma.task.update({
-          where: { id: t.id },
-          data: { archived: true, log: { create: { action: 'archived', byId: user.id, note: 'Archived' } } },
-        }),
-      ),
-    );
-    res.json({ updated: tasks.length });
   }),
 );
 

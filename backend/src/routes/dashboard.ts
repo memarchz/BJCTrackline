@@ -220,6 +220,41 @@ router.get(
       bucketStart = bucketEnd;
     }
 
+    const recentLog = await prisma.taskLogEntry.findMany({
+      where: {
+        task: { OR: [{ assignees: { some: { userId: user.id } } }, { subtasks: { some: { assigneeId: user.id } } }] },
+      },
+      include: { task: { select: { id: true, title: true } } },
+      orderBy: { ts: 'desc' },
+      take: 10,
+    });
+
+    const upcomingForMe = ctx
+      .filter((c) => ['todo', 'in_progress'].includes(c.status))
+      .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
+      .slice(0, 6);
+
+    // Preload all profiles
+    await preloadProfilesForTasks(tasks);
+    await preloadProfilesForTasks(dueSoonCtx.map((c) => c.task));
+    await preloadProfilesForTasks(upcomingForMe.map((c) => c.task));
+    await resolveUserProfiles(recentLog.map((l) => l.byId));
+
+    res.json({
+      stats,
+      priorityDistribution,
+      completionTrend,
+      dueSoon: dueSoonCtx.slice(0, 8).map((c) => serializeTask(c.task, user.id, user.isAdmin)),
+      recentActivity: recentLog.map((l) => ({
+        id: l.id,
+        ts: l.ts,
+        action: l.action,
+        note: l.note,
+        by: toUserSummary(resolveUserProfileSync(l.byId)),
+        task: l.task,
+      })),
+      upcomingForMe: upcomingForMe.map((c) => serializeTask(c.task, user.id, user.isAdmin)),
+    });
     res.json({ month: `${year}-${String(monthIndex + 1).padStart(2, '0')}`, completionTrend });
   }),
 );
