@@ -9,7 +9,6 @@ import { TaskListWithPagination } from "@/components/tasks/TaskListWithPaginatio
 import { TaskDrawer } from "@/components/tasks/TaskDrawer";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 import { starTask, deleteTask, nudgeTask } from "@/lib/task-actions";
-import { CompletionChart } from "@/components/dashboard/CompletionChart";
 import { CompletionRateChart } from "@/components/dashboard/CompletionRateChart";
 import { AvgScoreChart } from "@/components/dashboard/AvgScoreChart";
 import { Toast, useToast } from "@/components/ui/Toast";
@@ -225,9 +224,12 @@ export function TeamDetail({ teamId, isUser, onBack }: { teamId: string; isUser:
             return (
               <div
                 key={t.id}
-                className="grid gap-3.5 px-5 py-3 border-b items-center cursor-pointer hover:bg-[#f8faf9]"
+                // Read-only here on purpose — this task belongs to the member
+                // being inspected, not the person browsing the team page, so
+                // there's no drawer/click-through to change its status from
+                // this view (they'd only get that from their own task views).
+                className="grid gap-3.5 px-5 py-3 border-b items-center"
                 style={{ borderColor: "#f4f6f5", gridTemplateColumns: showAdminCols ? "1fr auto auto auto auto" : "1fr auto auto" }}
-                onClick={() => setOpenTaskId(t.id)}
               >
                 <div className="text-[13.5px] font-medium min-w-0 whitespace-nowrap overflow-hidden text-ellipsis">{t.title}</div>
                 {showAdminCols && (
@@ -423,7 +425,10 @@ export function TeamDetail({ teamId, isUser, onBack }: { teamId: string; isUser:
             </div>
           </div>
 
-          <CompletionChart data={perf.trend} title="Weekly progress — completed tasks" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <CompletionRateChart data={perf.completionTrend} title="Weekly completion rate" subtitle="Whole team, on-time vs. late" />
+            <AvgScoreChart data={perf.completionTrend} title="Average task score" subtitle="Whole team, trailing 8 weeks" />
+          </div>
         </>
       ) : tab === "review" ? (
         <div className="mb-2">

@@ -106,7 +106,9 @@ export interface TeamMemberStat {
 
 export interface TeamPerformance {
   stats: { total: number; completed: number; inProgress: number; overdue: number; lateCount: number; onTimeRate: number };
-  trend: { label: string; completed: number }[];
+  // Per week (not cumulative), aggregated across the whole team — same
+  // definitions as the personal Dashboard's charts (see DashboardData).
+  completionTrend: { label: string; onTimeRate: number; lateRate: number; avgScore: number }[];
   top3: TeamMemberStat[];
   members: TeamMemberStat[];
   tasks: Task[];

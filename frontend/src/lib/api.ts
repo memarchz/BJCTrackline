@@ -3,6 +3,11 @@ import { clearToken, getToken } from "./token";
 
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api",
+  // Without this, the browser silently drops the Set-Cookie from /auth/login
+  // on this cross-origin (different port) XHR — breaking anything that
+  // relies on the cookie instead of the Bearer header, like a plain
+  // browser navigation to the attachment download route.
+  withCredentials: true,
 });
 
 api.interceptors.request.use((config) => {

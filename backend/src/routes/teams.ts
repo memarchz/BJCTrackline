@@ -86,16 +86,7 @@ router.get(
       ? Math.round((onTimeEligible.filter((t) => t.late === false).length / onTimeEligible.length) * 100)
       : 0;
 
-    // Matches the prototype exactly: a *cumulative* completed-count as of
-    // each trailing week-ending date (not a per-period bucket), labeled
-    // W1..W7, Now.
     const now = new Date();
-    const trend: { label: string; completed: number }[] = [];
-    for (let i = 7; i >= 0; i--) {
-      const weekEnd = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
-      const count = completed.filter((t) => (t.reviewDate ?? t.updatedAt) <= weekEnd).length;
-      trend.push({ label: i === 0 ? 'Now' : `W${7 - i + 1}`, completed: count });
-    }
 
     // Per-member weekly trend (on-time rate / late rate / avg score), same
     // trailing-8-week bucketing as the personal dashboard — used by the
@@ -180,9 +171,69 @@ router.get(
 
     const top3 = [...memberStats].sort((a, b) => b.completedCount - a.completedCount).slice(0, 3);
 
+    // Per-week (non-cumulative) team-wide chart data — same shape and
+    // definitions as the personal Dashboard's completion-rate/avg-score
+    // charts, just aggregated across every unit of work belonging to this
+    // team instead of one user. A whole task with no subtasks is one unit;
+    // a task with subtasks contributes one unit per subtask (that's the
+    // level a score exists at — see computeScore in serializeTask.ts).
+    interface WorkUnit {
+      dueDate: Date;
+      completed: boolean;
+      reviewDate: Date | null;
+      late: boolean | null;
+      score: number | null;
+    }
+    function unitsForTask(task: TaskWithRelations): WorkUnit[] {
+      if (task.subtasks.length === 0) {
+        const unitCompleted = task.status === 'completed';
+        return [
+          {
+            dueDate: task.dueDate,
+            completed: unitCompleted,
+            reviewDate: task.reviewDate,
+            late: task.late,
+            score: unitCompleted
+              ? computeScore({ late: task.late, priority: task.priority, impact: task.impact, rejections: rejectionCount(task.log, null) })
+              : null,
+          },
+        ];
+      }
+      return task.subtasks.map((s) => {
+        const unitCompleted = s.status === 'completed';
+        return {
+          dueDate: s.dueDate ?? task.dueDate,
+          completed: unitCompleted,
+          reviewDate: s.reviewDate,
+          late: s.late,
+          score: unitCompleted
+            ? computeScore({ late: s.late, priority: task.priority, impact: task.impact, rejections: rejectionCount(task.log, s.id) })
+            : null,
+        };
+      });
+    }
+
+    const units = tasks.flatMap(unitsForTask);
+    const completionTrend: { label: string; onTimeRate: number; lateRate: number; avgScore: number }[] = [];
+    for (let i = 7; i >= 0; i--) {
+      const bucketEnd = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+      const bucketStart = new Date(bucketEnd.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const dueInBucket = units.filter((u) => u.dueDate > bucketStart && u.dueDate <= bucketEnd);
+      const completedInBucket = units.filter(
+        (u) => u.completed && u.reviewDate && u.reviewDate > bucketStart && u.reviewDate <= bucketEnd,
+      );
+      const onTimeInBucket = completedInBucket.filter((u) => u.late === false);
+      const lateInBucket = completedInBucket.filter((u) => u.late === true);
+      const bucketOnTimeRate = dueInBucket.length ? Math.round((onTimeInBucket.length / dueInBucket.length) * 1000) / 10 : 0;
+      const bucketLateRate = dueInBucket.length ? Math.round((lateInBucket.length / dueInBucket.length) * 1000) / 10 : 0;
+      const scored = completedInBucket.map((u) => u.score).filter((s): s is number => s != null);
+      const bucketAvgScore = scored.length ? Math.round((scored.reduce((a, b) => a + b, 0) / scored.length) * 100) / 100 : 0;
+      completionTrend.push({ label: i === 0 ? 'Now' : `W${7 - i + 1}`, onTimeRate: bucketOnTimeRate, lateRate: bucketLateRate, avgScore: bucketAvgScore });
+    }
+
     res.json({
       stats: { total, completed: completed.length, inProgress, overdue, lateCount, onTimeRate },
-      trend,
+      completionTrend,
       top3,
       members: memberStats,
       tasks: tasks.map((t) => serializeTask(t, undefined, false)),
