@@ -2,8 +2,9 @@ import { Router } from 'express';
 import { prisma } from '../db';
 import { asyncHandler } from '../utils/asyncHandler';
 import { requireAuth } from '../middleware/auth';
-import { taskInclude, serializeTask, getViewerContext, computeScore, rejectionCount } from '../utils/serializeTask';
+import { taskInclude, serializeTask, getViewerContext, computeScore, rejectionCount, preloadProfilesForTasks } from '../utils/serializeTask';
 import { toUserSummary, userSummarySelect } from './users';
+import { resolveUserProfileSync, resolveUserProfiles } from '../utils/userResolver';
 import type { Prisma } from '@prisma/client';
 
 const router = Router();
@@ -182,6 +183,12 @@ router.get(
       .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
       .slice(0, 6);
 
+    // Preload all profiles
+    await preloadProfilesForTasks(tasks);
+    await preloadProfilesForTasks(dueSoonCtx.map((c) => c.task));
+    await preloadProfilesForTasks(upcomingForMe.map((c) => c.task));
+    await resolveUserProfiles(recentLog.map((l) => l.byId));
+
     res.json({
       stats,
       priorityDistribution,
@@ -192,7 +199,7 @@ router.get(
         ts: l.ts,
         action: l.action,
         note: l.note,
-        by: toUserSummary(l.by),
+        by: toUserSummary(l.by, resolveUserProfileSync(l.byId)),
         task: l.task,
       })),
       upcomingForMe: upcomingForMe.map((c) => serializeTask(c.task, user.id, user.isAdmin)),

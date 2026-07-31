@@ -75,8 +75,8 @@ export function TeamDetail({ teamId, isUser, onBack }: { teamId: string; isUser:
 
   async function refresh() {
     const [teamRes, perfRes, reviewRes, assignedRes] = await Promise.all([
-      api.get(`/teams/${teamId}`),
-      api.get(`/teams/${teamId}/performance`),
+      api.get(`/teams/${encodeURIComponent(teamId)}`),
+      api.get(`/teams/${encodeURIComponent(teamId)}/performance`),
       api.get("/tasks", { params: { createdById: user?.id, teamId, status: "submitted" } }),
       api.get("/tasks", { params: { createdById: user?.id, teamId, status: "todo,in_progress,submitted,rejected" } }),
     ]);

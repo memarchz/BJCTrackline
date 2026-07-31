@@ -9,6 +9,8 @@ function extractToken(req: Request): string | null {
   return null;
 }
 
+import { resolveUserProfile } from '../utils/userResolver';
+
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   try {
     const token = extractToken(req);
@@ -16,12 +18,20 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 
     const payload = verifyToken(token);
     const user = await prisma.user.findUnique({
-      where: { id: payload.sub },
-      select: { id: true, name: true, email: true, isAdmin: true, teamId: true },
+      where: { empNo: payload.sub },
+      select: { empNo: true, isAdmin: true },
     });
     if (!user) return res.status(401).json({ error: 'Not authenticated' });
 
-    req.user = user;
+    const profile = await resolveUserProfile(user.empNo);
+    req.user = {
+      id: user.empNo, // Map empNo to id for backward compatibility
+      name: profile.name,
+      email: profile.email,
+      position: profile.position,
+      isAdmin: user.isAdmin,
+      teamId: profile.team,
+    };
     next();
   } catch {
     return res.status(401).json({ error: 'Invalid or expired session' });

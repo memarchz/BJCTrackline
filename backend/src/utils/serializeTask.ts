@@ -1,8 +1,8 @@
 import type { Level, Prisma, TaskStatus } from '@prisma/client';
 import { toUserSummary, userSummarySelect } from '../routes/users';
+import { resolveUserProfileSync, resolveUserProfiles, UserProfile } from './userResolver';
 
 export const taskInclude = {
-  team: { select: { id: true, name: true } },
   createdBy: { select: userSummarySelect },
   assignees: { include: { user: { select: userSummarySelect } } },
   subtasks: { include: { assignee: { select: userSummarySelect } } },
@@ -95,9 +95,9 @@ export function serializeTask(task: TaskWithRelations, viewerId?: string, viewer
     archived: task.archived,
     late: task.late,
     overdue: isOverdue(task),
-    team: task.team,
-    createdBy: toUserSummary(task.createdBy),
-    assignees: task.assignees.map((a) => toUserSummary(a.user)),
+    team: { id: task.team, name: task.team },
+    createdBy: toUserSummary(task.createdBy, resolveUserProfileSync(task.createdBy.empNo)),
+    assignees: task.assignees.map((a) => toUserSummary(a.user, resolveUserProfileSync(a.user.empNo))),
     dueDate: task.dueDate,
     createdDate: task.createdDate,
     submittedDate: task.submittedDate,
@@ -105,7 +105,7 @@ export function serializeTask(task: TaskWithRelations, viewerId?: string, viewer
     rejectReason: task.rejectReason,
     score: taskScore,
     // Contextual to the viewer: for someone who is only assigned to a subtask
-    // (not the parent), these reflect that subtask instead of the parent task —
+    // (not the parent task), these reflect that subtask instead of the parent task —
     // that's what drives correct bucketing in Current Tasks / Pending Review /
     // Dashboard for subtask-only assignees.
     viewerStatus: viewerCtx.status,
@@ -125,7 +125,7 @@ export function serializeTask(task: TaskWithRelations, viewerId?: string, viewer
       submittedDate: s.submittedDate,
       reviewDate: s.reviewDate,
       rejectReason: s.rejectReason,
-      assignee: s.assignee ? toUserSummary(s.assignee) : null,
+      assignee: s.assignee ? toUserSummary(s.assignee, resolveUserProfileSync(s.assignee.empNo)) : null,
       score:
         s.status === 'completed'
           ? computeScore({ late: s.late, priority: task.priority, impact: task.impact, rejections: rejectionCount(task.log, s.id) })
@@ -137,9 +137,21 @@ export function serializeTask(task: TaskWithRelations, viewerId?: string, viewer
       id: a.id,
       name: a.name,
       uploadedAt: a.uploadedAt,
-      uploadedBy: toUserSummary(a.uploadedBy),
+      uploadedBy: toUserSummary(a.uploadedBy, resolveUserProfileSync(a.uploadedBy.empNo)),
     })),
-    log: task.log.map((l) => ({ id: l.id, ts: l.ts, action: l.action, note: l.note, by: toUserSummary(l.by) })),
+    log: task.log.map((l) => ({ id: l.id, ts: l.ts, action: l.action, note: l.note, by: toUserSummary(l.by, resolveUserProfileSync(l.by.empNo)) })),
     starred: viewerId ? task.starredBy.some((s) => s.userId === viewerId) : false,
   };
+}
+
+export async function preloadProfilesForTasks(tasks: TaskWithRelations[]) {
+  const userIds = new Set<string>();
+  for (const t of tasks) {
+    userIds.add(t.createdById);
+    for (const a of t.assignees) userIds.add(a.userId);
+    for (const s of t.subtasks) if (s.assigneeId) userIds.add(s.assigneeId);
+    for (const at of t.attachments) userIds.add(at.uploadedById);
+    for (const l of t.log) userIds.add(l.byId);
+  }
+  await resolveUserProfiles(Array.from(userIds));
 }

@@ -28,25 +28,33 @@ export default function AdminTeamsPage() {
     if (!user) return;
     let cancelled = false;
     (async () => {
-      const teamsRes = await api.get<{ teams: (TeamRef & { memberCount: number })[] }>("/teams");
-      const teams = teamsRes.data.teams;
-      const [perfList, reviewLists] = await Promise.all([
-        Promise.all(teams.map((t) => api.get(`/teams/${t.id}/performance`).then((r) => r.data))),
-        Promise.all(
-          teams.map((t) =>
-            api
-              .get<{ tasks: Task[] }>("/tasks", { params: { createdById: user.id, teamId: t.id, status: "submitted" } })
-              .then((r) => r.data.tasks.length),
-          ),
-        ),
-      ]);
+      const teamsRes = await api.get<{
+        teams: {
+          id: string;
+          name: string;
+          memberCount: number;
+          taskCount: number;
+          completedCount: number;
+          lateCount: number;
+          reviewCount: number;
+        }[];
+      }>("/teams");
       if (cancelled) return;
+      
       setCards(
-        teams.map((t, i) => {
-          const perf = perfList[i];
-          const pct = perf.stats.total ? Math.round((perf.stats.completed / perf.stats.total) * 100) : 0;
-          return { id: t.id, name: t.name, memberCount: t.memberCount, completed: perf.stats.completed, total: perf.stats.total, late: perf.stats.lateCount, pct, reviewCount: reviewLists[i] };
-        }),
+        teamsRes.data.teams.map((t) => {
+          const pct = t.taskCount ? Math.round((t.completedCount / t.taskCount) * 100) : 0;
+          return {
+            id: t.id,
+            name: t.name,
+            memberCount: t.memberCount,
+            completed: t.completedCount,
+            total: t.taskCount,
+            late: t.lateCount,
+            pct,
+            reviewCount: t.reviewCount,
+          };
+        })
       );
     })();
     return () => {
@@ -64,7 +72,7 @@ export default function AdminTeamsPage() {
         {cards.map((team) => (
           <div
             key={team.id}
-            onClick={() => router.push(`/admin/teams/${team.id}`)}
+            onClick={() => router.push(`/admin/teams/${encodeURIComponent(team.id)}`)}
             className="relative overflow-hidden rounded-[18px] bg-white cursor-pointer border hover:-translate-y-1"
             style={{ borderColor: "#e3e8ef" }}
           >

@@ -4,8 +4,9 @@ import { prisma } from '../db';
 import { asyncHandler } from '../utils/asyncHandler';
 import { HttpError } from '../middleware/errorHandler';
 import { requireAuth, requireAdmin } from '../middleware/auth';
-import { userSummarySelect, toUserSummary } from './users';
-import { taskInclude, serializeTask, isOverdue, computeScore, rejectionCount, type TaskWithRelations } from '../utils/serializeTask';
+import { toUserSummary } from './users';
+import { resolveAllTeams, resolveUserProfiles, UserProfile } from '../utils/userResolver';
+import { taskInclude, serializeTask, isOverdue, computeScore, rejectionCount, preloadProfilesForTasks, type TaskWithRelations } from '../utils/serializeTask';
 
 const router = Router();
 router.use(requireAuth);
@@ -13,67 +14,155 @@ router.use(requireAuth);
 router.get(
   '/',
   asyncHandler(async (req, res) => {
-    const teams = await prisma.team.findMany({
-      orderBy: { name: 'asc' },
-      include: { _count: { select: { members: true, tasks: true } } },
+    // 1. Get all distinct team names from Master Data
+    const teamNames = await resolveAllTeams();
+
+    // 2. Count active, completed, late, and review tasks per team
+    const totalCounts = await prisma.task.groupBy({
+      by: ['team'],
+      _count: { _all: true },
+      where: { archived: false },
     });
-    res.json({
-      teams: teams.map((t) => ({ id: t.id, name: t.name, memberCount: t._count.members, taskCount: t._count.tasks })),
+    const totalMap = new Map(totalCounts.map((c) => [c.team, c._count._all]));
+
+    const completedCounts = await prisma.task.groupBy({
+      by: ['team'],
+      _count: { _all: true },
+      where: { archived: false, status: 'completed' },
     });
+    const completedMap = new Map(completedCounts.map((c) => [c.team, c._count._all]));
+
+    const lateCounts = await prisma.task.groupBy({
+      by: ['team'],
+      _count: { _all: true },
+      where: { archived: false, late: true },
+    });
+    const lateMap = new Map(lateCounts.map((c) => [c.team, c._count._all]));
+
+    const reviewCounts = await prisma.task.groupBy({
+      by: ['team'],
+      _count: { _all: true },
+      where: { archived: false, status: 'submitted' },
+    });
+    const reviewMap = new Map(reviewCounts.map((c) => [c.team, c._count._all]));
+
+    // 3. Count members per team from Master Data
+    const gcpCounts = await prisma.masterDataGcp.groupBy({
+      by: ['team'],
+      _count: { _all: true },
+      where: { NOT: { team: null } },
+    });
+    const userCounts = await prisma.masterDataUser.groupBy({
+      by: ['team'],
+      _count: { _all: true },
+      where: { NOT: { team: null } },
+    });
+
+    const memberCountMap = new Map<string, number>();
+    gcpCounts.forEach((c) => c.team && memberCountMap.set(c.team, c._count._all));
+    userCounts.forEach((c) => {
+      if (c.team) {
+        const existing = memberCountMap.get(c.team) || 0;
+        memberCountMap.set(c.team, existing + c._count._all);
+      }
+    });
+
+    const teams = teamNames.map((name) => ({
+      id: name,
+      name: name,
+      memberCount: memberCountMap.get(name) || 0,
+      taskCount: totalMap.get(name) || 0,
+      completedCount: completedMap.get(name) || 0,
+      lateCount: lateMap.get(name) || 0,
+      reviewCount: reviewMap.get(name) || 0,
+    }));
+
+    // Sort by task count descending
+    teams.sort((a, b) => b.taskCount - a.taskCount);
+
+    res.json({ teams });
   }),
 );
-
-const createTeamSchema = z.object({ name: z.string().min(1) });
 
 router.post(
   '/',
   requireAdmin,
-  asyncHandler(async (req, res) => {
-    const { name } = createTeamSchema.parse(req.body);
-    const team = await prisma.team.create({ data: { name } });
-    res.status(201).json({ team });
+  asyncHandler(async () => {
+    throw new HttpError(400, 'ฟังก์ชันสร้างทีมถูกปิดใช้งาน เนื่องจากใช้ระบบแผนกจาก Master Data');
   }),
 );
 
 router.delete(
   '/:id',
   requireAdmin,
-  asyncHandler(async (req, res) => {
-    await prisma.team.delete({ where: { id: req.params.id } });
-    res.status(204).end();
+  asyncHandler(async () => {
+    throw new HttpError(400, 'ฟังก์ชันลบทีมถูกปิดใช้งาน เนื่องจากใช้ระบบแผนกจาก Master Data');
   }),
 );
 
 router.get(
   '/:id',
   asyncHandler(async (req, res) => {
-    const team = await prisma.team.findUnique({
-      where: { id: req.params.id },
-      include: { members: { select: userSummarySelect, orderBy: { name: 'asc' } } },
+    const teamId = req.params.id; // Team ID is the team name string
+
+    const gcps = await prisma.masterDataGcp.findMany({ where: { team: teamId }, orderBy: { name: 'asc' } });
+    const users = await prisma.masterDataUser.findMany({ where: { team: teamId }, orderBy: { name: 'asc' } });
+    const allMembers = [...gcps, ...users];
+
+    const tracklineUsers = await prisma.user.findMany({
+      where: { empNo: { in: allMembers.map((m) => m.empNo) } },
+      select: { empNo: true, isAdmin: true },
     });
-    if (!team) throw new HttpError(404, 'Team not found');
-    res.json({ team: { id: team.id, name: team.name, members: team.members.map(toUserSummary) } });
+    const adminMap = new Map(tracklineUsers.map((u) => [u.empNo, u.isAdmin]));
+
+    const members = allMembers.map((m) =>
+      toUserSummary(
+        { empNo: m.empNo, isAdmin: adminMap.get(m.empNo) || false },
+        {
+          name: m.name || m.empNo,
+          email: m.email || '',
+          position: m.position,
+          team: m.team,
+        },
+      ),
+    );
+
+    res.json({ team: { id: teamId, name: teamId, members } });
   }),
 );
 
 router.get(
   '/:id/performance',
   asyncHandler(async (req, res) => {
-    const teamId = req.params.id;
-    const team = await prisma.team.findUnique({
-      where: { id: teamId },
-      include: { members: { select: userSummarySelect, orderBy: { name: 'asc' } } },
-    });
-    if (!team) throw new HttpError(404, 'Team not found');
+    const teamId = req.params.id; // Team ID is the team name string
 
-    // Fetched without an `archived` filter so archived tasks stay available
-    // for the per-member drill-down (its Completed tab folds archived work
-    // back in). `activeTasks` mirrors the old archived-excluded query and
-    // feeds every team-wide figure below, unchanged from before.
+    // Fetch team members from Master Data
+    const gcps = await prisma.masterDataGcp.findMany({ where: { team: teamId }, orderBy: { name: 'asc' } });
+    const users = await prisma.masterDataUser.findMany({ where: { team: teamId }, orderBy: { name: 'asc' } });
+    const allMembers = [...gcps, ...users];
+
+    const tracklineUsers = await prisma.user.findMany({
+      where: { empNo: { in: allMembers.map((m) => m.empNo) } },
+      select: { empNo: true, isAdmin: true },
+    });
+    const adminMap = new Map(tracklineUsers.map((u) => [u.empNo, u.isAdmin]));
+    
+    const members = allMembers.map((m) => ({
+      empNo: m.empNo,
+      isAdmin: adminMap.get(m.empNo) || false,
+      name: m.name || m.empNo,
+      email: m.email || '',
+      position: m.position,
+      team: m.team,
+    }));
+
     const tasks = await prisma.task.findMany({
-      where: { teamId },
+      where: { team: teamId },
       include: taskInclude,
     });
+
+    await preloadProfilesForTasks(tasks);
+
     const activeTasks = tasks.filter((t) => !t.archived);
 
     const total = activeTasks.length;
@@ -86,9 +175,6 @@ router.get(
       ? Math.round((onTimeEligible.filter((t) => t.late === false).length / onTimeEligible.length) * 100)
       : 0;
 
-    // Matches the prototype exactly: a *cumulative* completed-count as of
-    // each trailing week-ending date (not a per-period bucket), labeled
-    // W1..W7, Now.
     const now = new Date();
     const trend: { label: string; completed: number }[] = [];
     for (let i = 7; i >= 0; i--) {
@@ -97,10 +183,6 @@ router.get(
       trend.push({ label: i === 0 ? 'Now' : `W${7 - i + 1}`, completed: count });
     }
 
-    // Per-member weekly trend (on-time rate / late rate / avg score), same
-    // trailing-8-week bucketing as the personal dashboard — used by the
-    // admin-only charts on a member's drill-down page. Built from `tasks`
-    // (archived included) so archived-completed work still counts.
     interface WorkUnit {
       dueDate: Date;
       completed: boolean;
@@ -108,6 +190,7 @@ router.get(
       late: boolean | null;
       score: number | null;
     }
+
     function unitsForMember(task: TaskWithRelations, memberId: string): WorkUnit[] {
       const isTaskAssignee = task.assignees.some((a) => a.userId === memberId);
       if (task.subtasks.length === 0) {
@@ -139,6 +222,7 @@ router.get(
         };
       });
     }
+
     function trendForMember(memberId: string): { label: string; onTimeRate: number; lateRate: number; avgScore: number }[] {
       const units = tasks.flatMap((t) => unitsForMember(t, memberId));
       const points: { label: string; onTimeRate: number; lateRate: number; avgScore: number }[] = [];
@@ -158,8 +242,8 @@ router.get(
       return points;
     }
 
-    const memberStats = team.members.map((m) => {
-      const assigned = activeTasks.filter((t) => t.assignees.some((a) => a.userId === m.id));
+    const memberStats = members.map((m) => {
+      const assigned = activeTasks.filter((t) => t.assignees.some((a) => a.userId === m.empNo));
       const memberCompleted = assigned.filter((t) => t.status === 'completed');
       const memberLateCount = assigned.filter((t) => t.late === true).length;
       const memberOpenCount = assigned.filter((t) => t.status === 'todo' || t.status === 'in_progress').length;
@@ -167,14 +251,18 @@ router.get(
       const memberOnTimeRate = memberOnTimeEligible.length
         ? Math.round((memberOnTimeEligible.filter((t) => t.late === false).length / memberOnTimeEligible.length) * 100)
         : 0;
+
       return {
-        user: toUserSummary(m),
+        user: toUserSummary(
+          { empNo: m.empNo, isAdmin: m.isAdmin },
+          { name: m.name, email: m.email, position: m.position, team: m.team },
+        ),
         assignedCount: assigned.length,
         completedCount: memberCompleted.length,
         lateCount: memberLateCount,
         openCount: memberOpenCount,
         onTimeRate: memberOnTimeRate,
-        completionTrend: trendForMember(m.id),
+        completionTrend: trendForMember(m.empNo),
       };
     });
 
@@ -185,7 +273,7 @@ router.get(
       trend,
       top3,
       members: memberStats,
-      tasks: tasks.map((t) => serializeTask(t, undefined, false)),
+      tasks: tasks.map((t) => serializeTask(t, req.user!.id, req.user!.isAdmin)),
     });
   }),
 );

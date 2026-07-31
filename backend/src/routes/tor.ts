@@ -5,6 +5,7 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { HttpError } from '../middleware/errorHandler';
 import { requireAuth, requireAdmin } from '../middleware/auth';
 import { toUserSummary, userSummarySelect } from './users';
+import { resolveUserProfileSync, resolveUserProfiles } from '../utils/userResolver';
 
 const router = Router();
 router.use(requireAuth);
@@ -39,8 +40,8 @@ function serializeTor(t: {
     step: t.step,
     comment: t.comment,
     rejected: t.rejected,
-    requester: toUserSummary(t.requester),
-    reviewer: t.reviewer ? toUserSummary(t.reviewer) : null,
+    requester: toUserSummary(t.requester, resolveUserProfileSync(t.requester.empNo)),
+    reviewer: t.reviewer ? toUserSummary(t.reviewer, resolveUserProfileSync(t.reviewer.empNo)) : null,
   };
 }
 
@@ -48,6 +49,15 @@ router.get(
   '/',
   asyncHandler(async (req, res) => {
     const requests = await prisma.torRequest.findMany({ include: torInclude, orderBy: { openedDate: 'desc' } });
+    
+    // Preload requester and reviewer profiles
+    const userIds = new Set<string>();
+    requests.forEach((r) => {
+      userIds.add(r.requesterId);
+      if (r.reviewerId) userIds.add(r.reviewerId);
+    });
+    await resolveUserProfiles(Array.from(userIds));
+
     res.json({ requests: requests.map(serializeTor) });
   }),
 );
@@ -77,6 +87,9 @@ router.post(
       },
       include: torInclude,
     });
+
+    await resolveUserProfiles([request.requesterId]);
+
     res.status(201).json({ request: serializeTor(request) });
   }),
 );
@@ -104,6 +117,11 @@ router.patch(
         data: { comment: body.comment, rejected: true, reviewerId: req.user!.id },
         include: torInclude,
       });
+
+      const userIds = [updated.requesterId];
+      if (updated.reviewerId) userIds.push(updated.reviewerId);
+      await resolveUserProfiles(userIds);
+
       return res.json({ request: serializeTor(updated) });
     }
 
@@ -119,6 +137,11 @@ router.patch(
       },
       include: torInclude,
     });
+
+    const userIds = [updated.requesterId];
+    if (updated.reviewerId) userIds.push(updated.reviewerId);
+    await resolveUserProfiles(userIds);
+
     res.json({ request: serializeTor(updated) });
   }),
 );

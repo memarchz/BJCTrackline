@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, apiErrorMessage } from "@/lib/api";
+import { api } from "@/lib/api";
 import type { UserSummary } from "@/lib/types";
 
 function initials(name: string) {
@@ -19,8 +19,12 @@ export default function AccountsPage() {
   const [error, setError] = useState<string | null>(null);
 
   async function refresh() {
-    const res = await api.get<{ users: UserSummary[] }>("/users");
-    setAccounts(res.data.users);
+    try {
+      const res = await api.get<{ users: UserSummary[] }>("/users");
+      setAccounts(res.data.users);
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   useEffect(() => {
@@ -28,135 +32,122 @@ export default function AccountsPage() {
     refresh();
   }, []);
 
-  function flash(msg: string) {
-    setToast(msg);
-    setTimeout(() => setToast(null), 1800);
-  }
-
   async function createAccount() {
-    const name = newName.trim();
-    if (!name || !newPw || newPw.length < 6) {
-      setError("Name and a password of at least 6 characters are required.");
-      return;
-    }
-    setError(null);
-    try {
-      await api.post("/users", { name, email: newEmail.trim() || `${name.toLowerCase().replace(/\s+/g, ".")}@bjctrackline.test`, password: newPw });
-      setNewName("");
-      setNewEmail("");
-      setNewPw("");
-      flash("Account created");
-      refresh();
-    } catch (err) {
-      setError(apiErrorMessage(err, "Couldn't create this account"));
-    }
+    // Disabled as per user request
+    return;
   }
 
   async function saveEmail(id: string) {
-    const email = emailDrafts[id];
-    if (!email) return;
-    try {
-      await api.patch(`/users/${id}/credentials`, { email });
-      setEmailDrafts((d) => {
-        const next = { ...d };
-        delete next[id];
-        return next;
-      });
-      flash("Email updated");
-      refresh();
-    } catch (err) {
-      setError(apiErrorMessage(err));
-    }
+    // Disabled as per user request
+    return;
   }
 
   async function savePassword(id: string) {
-    const password = pwDrafts[id]?.trim();
-    if (!password) return;
-    try {
-      await api.patch(`/users/${id}/credentials`, { password });
-      setPwDrafts((d) => ({ ...d, [id]: "" }));
-      flash("Password updated");
-    } catch (err) {
-      setError(apiErrorMessage(err));
-    }
+    // Disabled as per user request
+    return;
   }
 
   async function deleteUser(id: string) {
-    if (!window.confirm("Delete this user? This can't be undone.")) return;
-    try {
-      await api.delete(`/users/${id}`);
-      refresh();
-    } catch (err) {
-      setError(apiErrorMessage(err));
-    }
+    // Disabled as per user request
+    return;
   }
 
   return (
     <div style={{ maxWidth: 1000 }}>
       {error && <div className="text-sm rounded-lg px-3 py-2 mb-4" style={{ background: "#fee2e2", color: "#b91c1c", border: "1px solid #fca5a5" }}>{error}</div>}
 
-      <div className="card flex items-center gap-3 p-3.5 mb-5.5 flex-wrap">
+      {/* Corporate Info Banner */}
+      <div className="card p-4.5 mb-5.5 flex items-start gap-3.5" style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1e3a8a" }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-none mt-0.5">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="16" x2="12" y2="12" />
+          <line x1="12" y1="8" x2="12.01" y2="8" />
+        </svg>
+        <div>
+          <div className="font-bold text-sm">User Account Management Suspended</div>
+          <div className="text-xs mt-1 leading-relaxed opacity-90">
+            BJC Trackline has been updated to handle user security, passwords, and profiles via the corporate EHR Login API and centralized Master Data system. This page is kept for viewing legacy account records. Creating, deleting, or updating credentials directly on this page is disabled.
+          </div>
+        </div>
+      </div>
+
+      <div className="card flex items-center gap-3 p-3.5 mb-5.5 flex-wrap opacity-60">
         <div className="w-10 h-10 flex-none rounded-[11px] flex items-center justify-center" style={{ background: "#dbeafe", color: "#1e3a8a" }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6 1.6 0 3 .3 4.2.9" /><path d="M18 14v6M15 17h6" /></svg>
         </div>
         <div className="flex-none">
-          <div className="font-bold text-sm">Create account</div>
-          <div className="text-[11.5px]" style={{ color: "#8a968f" }}>Add a new user to the system</div>
+          <div className="font-bold text-sm">Create an account</div>
+          <div className="text-[11.5px]" style={{ color: "#8a968f" }}>Add a local system account (Managed via Corporate HR / Master Data)</div>
         </div>
-        <input className="input flex-1" style={{ minWidth: 120 }} value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Full name" />
-        <input className="input flex-1" style={{ minWidth: 120 }} type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="Email" />
-        <input className="input flex-1" style={{ minWidth: 120 }} type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="Password" />
-        <button className="btn btn-primary flex-none" onClick={createAccount}>Create</button>
+        <input className="input" style={{ width: 140 }} placeholder="Full name" value={newName} disabled={true} onChange={(e) => setNewName(e.target.value)} />
+        <input className="input" style={{ width: 160 }} placeholder="Email (optional)" value={newEmail} disabled={true} onChange={(e) => setNewEmail(e.target.value)} />
+        <input className="input" style={{ width: 130 }} type="password" placeholder="Password (6+ chars)" value={newPw} disabled={true} onChange={(e) => setNewPw(e.target.value)} />
+        <button className="btn btn-primary flex-none" disabled={true} onClick={createAccount}>Create</button>
       </div>
 
       <div className="card overflow-hidden">
-        <div className="grid gap-3.5 px-4.5 py-3 border-b font-mono uppercase" style={{ gridTemplateColumns: "1.7fr 1fr 1.6fr 1.6fr auto", background: "#f8faf9", borderColor: "#e3e8e6", fontSize: 10.5, fontWeight: 600, letterSpacing: ".05em", color: "#5c6a67" }}>
-          <div>User</div><div>Team</div><div>Email</div><div>Password</div><div />
-        </div>
-        {accounts.map((a) => (
-          <div key={a.id} className="grid gap-3.5 px-4.5 py-3 border-b items-center hover:bg-[#f8faf9]" style={{ gridTemplateColumns: "1.7fr 1fr 1.6fr 1.6fr auto", borderColor: "#f0f3f2" }}>
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-[34px] h-[34px] flex-none rounded-full flex items-center justify-center font-mono font-semibold text-xs" style={{ background: "#eef1f0", color: "#3d4a47" }}>{initials(a.name)}</div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-[13.5px] whitespace-nowrap overflow-hidden text-ellipsis">{a.name}</span>
-                  {a.admin && <span className="font-mono uppercase font-semibold rounded-full px-1.5 py-0.5" style={{ fontSize: 9, color: "#92400e", background: "#fef3c7" }}>Admin</span>}
-                </div>
-                <div className="text-[11.5px] whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: "#8a968f" }}>{a.title}</div>
-              </div>
-            </div>
-            <div className="text-[12.5px]" style={{ color: a.team ? "#3d4a47" : "#96a19d" }}>{a.team?.name ?? "Unassigned"}</div>
-            <div className="flex items-center gap-1.5">
-              <input
-                className="input flex-1 min-w-0"
-                style={{ height: 34 }}
-                type="email"
-                value={emailDrafts[a.id] ?? a.email}
-                onChange={(e) => setEmailDrafts((d) => ({ ...d, [a.id]: e.target.value }))}
-                placeholder="Set email"
-              />
-              <button className="btn btn-secondary flex-none" style={{ height: 34, fontSize: 12 }} onClick={() => saveEmail(a.id)}>Save</button>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <input
-                className="input flex-1 min-w-0"
-                style={{ height: 34 }}
-                type="password"
-                value={pwDrafts[a.id] ?? ""}
-                onChange={(e) => setPwDrafts((d) => ({ ...d, [a.id]: e.target.value }))}
-                placeholder="Change password"
-              />
-              <button className="btn btn-secondary flex-none" style={{ height: 34, fontSize: 12 }} onClick={() => savePassword(a.id)}>Save</button>
-            </div>
-            <button onClick={() => deleteUser(a.id)} title="Delete user" className="flex-none w-8 h-8 rounded-lg border flex items-center justify-center cursor-pointer hover:border-[#fca5a5] hover:text-[#b91c1c] hover:bg-[#fef2f2]" style={{ borderColor: "#e3e8e6", color: "#8a968f" }}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13" /></svg>
-            </button>
-          </div>
-        ))}
+        <table className="w-full text-left" style={{ borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ background: "#fbfcfc", borderBottom: "1px solid #f0f3f2" }}>
+              <th className="px-5.5 py-3 font-semibold text-[13px] text-slate-700">Account</th>
+              <th className="px-5.5 py-3 font-semibold text-[13px] text-slate-700">Email Address</th>
+              <th className="px-5.5 py-3 font-semibold text-[13px] text-slate-700">New Password</th>
+              <th className="px-5.5 py-3 text-right"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {accounts.map((acc) => (
+              <tr key={acc.id} className="border-b hover:bg-[#fbfcfc]" style={{ borderColor: "#f4f6f5" }}>
+                <td className="px-5.5 py-3 flex items-center gap-3">
+                  <div className="w-[34px] h-[34px] flex-none rounded-full flex items-center justify-center font-mono font-semibold text-xs" style={{ background: "#eef1f0", color: "#3d4a47" }}>{initials(acc.name)}</div>
+                  <div className="min-w-0">
+                    <div className="font-semibold text-[13.5px] whitespace-nowrap overflow-hidden text-ellipsis">{acc.name}</div>
+                    <div className="text-[11.5px] whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: "#8a968f" }}>{acc.title || "Employee"} &bull; {acc.id}</div>
+                  </div>
+                </td>
+                <td className="px-5.5 py-3">
+                  <div className="flex items-center gap-2 max-w-[210px] opacity-70">
+                    <input
+                      className="input w-full text-[13px]"
+                      style={{ height: 32 }}
+                      value={emailDrafts[acc.id] ?? acc.email}
+                      disabled={true}
+                      onChange={(e) => setEmailDrafts((d) => ({ ...d, [acc.id]: e.target.value }))}
+                    />
+                    {(emailDrafts[acc.id] ?? acc.email) !== acc.email && (
+                      <button className="btn btn-secondary flex-none" style={{ height: 32, padding: "0 10px" }} disabled={true} onClick={() => saveEmail(acc.id)}>Save</button>
+                    )}
+                  </div>
+                </td>
+                <td className="px-5.5 py-3">
+                  <div className="flex items-center gap-2 max-w-[200px] opacity-70">
+                    <input
+                      type="password"
+                      className="input w-full text-[13px]"
+                      style={{ height: 32 }}
+                      placeholder="Enter to change"
+                      value={pwDrafts[acc.id] ?? ""}
+                      disabled={true}
+                      onChange={(e) => setPwDrafts((d) => ({ ...d, [acc.id]: e.target.value }))}
+                    />
+                    {pwDrafts[acc.id] && (
+                      <button className="btn btn-secondary flex-none" style={{ height: 32, padding: "0 10px" }} disabled={true} onClick={() => savePassword(acc.id)}>Save</button>
+                    )}
+                  </div>
+                </td>
+                <td className="px-5.5 py-3 text-right">
+                  <button disabled={true} title="Delete account (Disabled)" className="inline-flex w-[30px] h-[30px] rounded-lg border items-center justify-center opacity-40 cursor-not-allowed" style={{ borderColor: "#e3e8e6", color: "#8a968f" }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13" /></svg>
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[70] text-white rounded-full px-5 py-2.5 font-semibold text-[13px]" style={{ background: "#10201d", boxShadow: "0 12px 34px rgba(9,20,17,.32)" }}>
+        <div className="fixed bottom-6 right-6 z-[80] bg-[#1e293b] text-white text-sm font-semibold rounded-lg px-4.5 py-3 shadow-xl">
           {toast}
         </div>
       )}
