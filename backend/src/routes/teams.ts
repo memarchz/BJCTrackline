@@ -174,67 +174,6 @@ router.get(
       ? Math.round((onTimeEligible.filter((t) => t.late === false).length / onTimeEligible.length) * 100)
       : 0;
 
-    const now = new Date();
-
-    interface WorkUnit {
-      dueDate: Date;
-      completed: boolean;
-      reviewDate: Date | null;
-      late: boolean | null;
-      score: number | null;
-    }
-
-    function unitsForMember(task: TaskWithRelations, memberId: string): WorkUnit[] {
-      const isTaskAssignee = task.assignees.some((a) => a.userId === memberId);
-      if (task.subtasks.length === 0) {
-        if (!isTaskAssignee) return [];
-        const isCompleted = task.status === 'completed';
-        return [
-          {
-            dueDate: task.dueDate,
-            completed: isCompleted,
-            reviewDate: task.reviewDate,
-            late: task.late,
-            score: isCompleted
-              ? computeScore({ late: task.late, priority: task.priority, impact: task.impact, rejections: rejectionCount(task.log, null) })
-              : null,
-          },
-        ];
-      }
-      const relevant = isTaskAssignee ? task.subtasks : task.subtasks.filter((s) => s.assigneeId === memberId);
-      return relevant.map((s) => {
-        const isCompleted = s.status === 'completed';
-        return {
-          dueDate: s.dueDate ?? task.dueDate,
-          completed: isCompleted,
-          reviewDate: s.reviewDate,
-          late: s.late,
-          score: isCompleted
-            ? computeScore({ late: s.late, priority: task.priority, impact: task.impact, rejections: rejectionCount(task.log, s.id) })
-            : null,
-        };
-      });
-    }
-
-    function trendForMember(memberId: string): { label: string; onTimeRate: number; lateRate: number; avgScore: number }[] {
-      const units = tasks.flatMap((t) => unitsForMember(t, memberId));
-      const points: { label: string; onTimeRate: number; lateRate: number; avgScore: number }[] = [];
-      for (let i = 7; i >= 0; i--) {
-        const bucketEnd = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
-        const bucketStart = new Date(bucketEnd.getTime() - 7 * 24 * 60 * 60 * 1000);
-        const dueInBucket = units.filter((u) => u.dueDate > bucketStart && u.dueDate <= bucketEnd);
-        const completedInBucket = units.filter((u) => u.completed && u.reviewDate && u.reviewDate > bucketStart && u.reviewDate <= bucketEnd);
-        const onTimeInBucket = completedInBucket.filter((u) => u.late === false);
-        const lateInBucket = completedInBucket.filter((u) => u.late === true);
-        const bucketOnTimeRate = dueInBucket.length ? Math.round((onTimeInBucket.length / dueInBucket.length) * 1000) / 10 : 0;
-        const bucketLateRate = dueInBucket.length ? Math.round((lateInBucket.length / dueInBucket.length) * 1000) / 10 : 0;
-        const scored = completedInBucket.map((u) => u.score).filter((s): s is number => s != null);
-        const avgScore = scored.length ? Math.round((scored.reduce((a, b) => a + b, 0) / scored.length) * 100) / 100 : 0;
-        points.push({ label: i === 0 ? 'Now' : `W${7 - i + 1}`, onTimeRate: bucketOnTimeRate, lateRate: bucketLateRate, avgScore });
-      }
-      return points;
-    }
-
     const memberStats = members.map((m) => {
       const assigned = activeTasks.filter((t) => t.assignees.some((a) => a.userId === m.empNo));
       const memberCompleted = assigned.filter((t) => t.status === 'completed');
@@ -259,18 +198,41 @@ router.get(
         lateCount: memberLateCount,
         openCount: memberOpenCount,
         onTimeRate: memberOnTimeRate,
-        completionTrend: trendForMember(m.empNo),
       };
     });
 
     const top3 = [...memberStats].sort((a, b) => b.completedCount - a.completedCount).slice(0, 3);
 
-    // Per-week (non-cumulative) team-wide chart data — same shape and
-    // definitions as the personal Dashboard's completion-rate/avg-score
-    // charts, just aggregated across every unit of work belonging to this
-    // team instead of one user. A whole task with no subtasks is one unit;
-    // a task with subtasks contributes one unit per subtask (that's the
-    // level a score exists at — see computeScore in serializeTask.ts).
+    res.json({
+      stats: { total, completed: completed.length, inProgress, overdue, lateCount, onTimeRate },
+      top3,
+      members: memberStats,
+      tasks: tasks.map((t) => serializeTask(t, req.user!.id, req.user!.isAdmin)),
+    });
+  }),
+);
+
+// Per-week (non-cumulative) team-wide chart data for a single calendar
+// month, picked via ?month=YYYY-MM (defaults to the current month) — same
+// shape and definitions as the personal Dashboard's completion-rate/avg-
+// score charts, just aggregated across every unit of work belonging to
+// this team instead of one user. A whole task with no subtasks is one
+// unit; a task with subtasks contributes one unit per subtask (that's the
+// level a score exists at — see computeScore in serializeTask.ts).
+router.get(
+  '/:id/completion-trend',
+  asyncHandler(async (req, res) => {
+    const teamId = req.params.id;
+    const monthParam = typeof req.query.month === 'string' ? req.query.month : undefined;
+    const match = monthParam?.match(/^(\d{4})-(\d{2})$/);
+    const now = new Date();
+    const year = match ? Number(match[1]) : now.getFullYear();
+    const monthIndex = match ? Number(match[2]) - 1 : now.getMonth();
+    const rangeStart = new Date(year, monthIndex, 1);
+    const rangeEnd = new Date(year, monthIndex + 1, 1);
+
+    const tasks = await prisma.task.findMany({ where: { team: teamId }, include: taskInclude });
+
     interface WorkUnit {
       dueDate: Date;
       completed: boolean;
@@ -308,13 +270,13 @@ router.get(
     }
 
     const units = tasks.flatMap(unitsForTask);
+    const shortDate = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const completionTrend: { label: string; onTimeRate: number; lateRate: number; avgScore: number }[] = [];
-    for (let i = 7; i >= 0; i--) {
-      const bucketEnd = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
-      const bucketStart = new Date(bucketEnd.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const dueInBucket = units.filter((u) => u.dueDate > bucketStart && u.dueDate <= bucketEnd);
+    for (let bucketStart = new Date(rangeStart); bucketStart < rangeEnd; ) {
+      const bucketEnd = new Date(Math.min(bucketStart.getTime() + 7 * 24 * 60 * 60 * 1000, rangeEnd.getTime()));
+      const dueInBucket = units.filter((u) => u.dueDate >= bucketStart && u.dueDate < bucketEnd);
       const completedInBucket = units.filter(
-        (u) => u.completed && u.reviewDate && u.reviewDate > bucketStart && u.reviewDate <= bucketEnd,
+        (u) => u.completed && u.reviewDate && u.reviewDate >= bucketStart && u.reviewDate < bucketEnd,
       );
       const onTimeInBucket = completedInBucket.filter((u) => u.late === false);
       const lateInBucket = completedInBucket.filter((u) => u.late === true);
@@ -322,16 +284,92 @@ router.get(
       const bucketLateRate = dueInBucket.length ? Math.round((lateInBucket.length / dueInBucket.length) * 1000) / 10 : 0;
       const scored = completedInBucket.map((u) => u.score).filter((s): s is number => s != null);
       const bucketAvgScore = scored.length ? Math.round((scored.reduce((a, b) => a + b, 0) / scored.length) * 100) / 100 : 0;
-      completionTrend.push({ label: i === 0 ? 'Now' : `W${7 - i + 1}`, onTimeRate: bucketOnTimeRate, lateRate: bucketLateRate, avgScore: bucketAvgScore });
+      completionTrend.push({ label: shortDate(bucketStart), onTimeRate: bucketOnTimeRate, lateRate: bucketLateRate, avgScore: bucketAvgScore });
+      bucketStart = bucketEnd;
     }
 
-    res.json({
-      stats: { total, completed: completed.length, inProgress, overdue, lateCount, onTimeRate },
-      completionTrend,
-      top3,
-      members: memberStats,
-      tasks: tasks.map((t) => serializeTask(t, req.user!.id, req.user!.isAdmin)),
-    });
+    res.json({ month: `${year}-${String(monthIndex + 1).padStart(2, '0')}`, completionTrend });
+  }),
+);
+
+// Same as the team-wide chart above, but scoped to one member's own units of
+// work (or every subtask under a task they're the overall assignee for —
+// same "co-owner of the whole task" rule used elsewhere). `memberId` is the
+// employee number (empNo), so it's URL-encoded on the way in.
+router.get(
+  '/:id/members/:memberId/completion-trend',
+  asyncHandler(async (req, res) => {
+    const teamId = req.params.id;
+    const memberId = req.params.memberId;
+    const monthParam = typeof req.query.month === 'string' ? req.query.month : undefined;
+    const match = monthParam?.match(/^(\d{4})-(\d{2})$/);
+    const now = new Date();
+    const year = match ? Number(match[1]) : now.getFullYear();
+    const monthIndex = match ? Number(match[2]) - 1 : now.getMonth();
+    const rangeStart = new Date(year, monthIndex, 1);
+    const rangeEnd = new Date(year, monthIndex + 1, 1);
+
+    const tasks = await prisma.task.findMany({ where: { team: teamId }, include: taskInclude });
+
+    interface WorkUnit {
+      dueDate: Date;
+      completed: boolean;
+      reviewDate: Date | null;
+      late: boolean | null;
+      score: number | null;
+    }
+    function unitsForMember(task: TaskWithRelations): WorkUnit[] {
+      const isTaskAssignee = task.assignees.some((a) => a.userId === memberId);
+      if (task.subtasks.length === 0) {
+        if (!isTaskAssignee) return [];
+        const isCompleted = task.status === 'completed';
+        return [
+          {
+            dueDate: task.dueDate,
+            completed: isCompleted,
+            reviewDate: task.reviewDate,
+            late: task.late,
+            score: isCompleted
+              ? computeScore({ late: task.late, priority: task.priority, impact: task.impact, rejections: rejectionCount(task.log, null) })
+              : null,
+          },
+        ];
+      }
+      const relevant = isTaskAssignee ? task.subtasks : task.subtasks.filter((s) => s.assigneeId === memberId);
+      return relevant.map((s) => {
+        const isCompleted = s.status === 'completed';
+        return {
+          dueDate: s.dueDate ?? task.dueDate,
+          completed: isCompleted,
+          reviewDate: s.reviewDate,
+          late: s.late,
+          score: isCompleted
+            ? computeScore({ late: s.late, priority: task.priority, impact: task.impact, rejections: rejectionCount(task.log, s.id) })
+            : null,
+        };
+      });
+    }
+
+    const units = tasks.flatMap(unitsForMember);
+    const shortDate = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const completionTrend: { label: string; onTimeRate: number; lateRate: number; avgScore: number }[] = [];
+    for (let bucketStart = new Date(rangeStart); bucketStart < rangeEnd; ) {
+      const bucketEnd = new Date(Math.min(bucketStart.getTime() + 7 * 24 * 60 * 60 * 1000, rangeEnd.getTime()));
+      const dueInBucket = units.filter((u) => u.dueDate >= bucketStart && u.dueDate < bucketEnd);
+      const completedInBucket = units.filter(
+        (u) => u.completed && u.reviewDate && u.reviewDate >= bucketStart && u.reviewDate < bucketEnd,
+      );
+      const onTimeInBucket = completedInBucket.filter((u) => u.late === false);
+      const lateInBucket = completedInBucket.filter((u) => u.late === true);
+      const bucketOnTimeRate = dueInBucket.length ? Math.round((onTimeInBucket.length / dueInBucket.length) * 1000) / 10 : 0;
+      const bucketLateRate = dueInBucket.length ? Math.round((lateInBucket.length / dueInBucket.length) * 1000) / 10 : 0;
+      const scored = completedInBucket.map((u) => u.score).filter((s): s is number => s != null);
+      const bucketAvgScore = scored.length ? Math.round((scored.reduce((a, b) => a + b, 0) / scored.length) * 100) / 100 : 0;
+      completionTrend.push({ label: shortDate(bucketStart), onTimeRate: bucketOnTimeRate, lateRate: bucketLateRate, avgScore: bucketAvgScore });
+      bucketStart = bucketEnd;
+    }
+
+    res.json({ month: `${year}-${String(monthIndex + 1).padStart(2, '0')}`, completionTrend });
   }),
 );
 

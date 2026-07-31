@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import type { Task, Team, TeamPerformance, TeamRef } from "@/lib/types";
+import type { CompletionTrendPoint, Task, Team, TeamPerformance, TeamRef } from "@/lib/types";
 import { dueText, statusBadgeClass, statusLabel } from "@/lib/format";
+import { currentMonthStr, monthLabel, shiftMonth } from "@/lib/month";
 import { TaskListWithPagination } from "@/components/tasks/TaskListWithPagination";
 import { TaskDrawer } from "@/components/tasks/TaskDrawer";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
@@ -70,6 +71,10 @@ export function TeamDetail({ teamId, isUser, onBack }: { teamId: string; isUser:
   const [nudgeTarget, setNudgeTarget] = useState<Task | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
   const { toast, showToast, clearToast } = useToast();
+  const [trendMonth, setTrendMonth] = useState(currentMonthStr());
+  const [trend, setTrend] = useState<CompletionTrendPoint[]>([]);
+  const [memberTrendMonth, setMemberTrendMonth] = useState(currentMonthStr());
+  const [memberTrend, setMemberTrend] = useState<CompletionTrendPoint[]>([]);
   const MEMBER_PAGE_SIZE = 6;
 
   async function refresh() {
@@ -93,6 +98,48 @@ export function TeamDetail({ teamId, isUser, onBack }: { teamId: string; isUser:
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId, user?.id]);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    api
+      .get<{ month: string; completionTrend: CompletionTrendPoint[] }>(`/teams/${encodeURIComponent(teamId)}/completion-trend`, { params: { month: trendMonth } })
+      .then((res) => {
+        if (!cancelled) setTrend(res.data.completionTrend);
+      })
+      .catch(() => {
+        if (!cancelled) setTrend([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamId, trendMonth, user?.id]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset the month picker when switching to a different member
+    setMemberTrendMonth(currentMonthStr());
+  }, [selectedMemberId]);
+
+  useEffect(() => {
+    if (!user || !selectedMemberId) return;
+    let cancelled = false;
+    api
+      .get<{ month: string; completionTrend: CompletionTrendPoint[] }>(
+        `/teams/${encodeURIComponent(teamId)}/members/${encodeURIComponent(selectedMemberId)}/completion-trend`,
+        { params: { month: memberTrendMonth } },
+      )
+      .then((res) => {
+        if (!cancelled) setMemberTrend(res.data.completionTrend);
+      })
+      .catch(() => {
+        if (!cancelled) setMemberTrend([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamId, selectedMemberId, memberTrendMonth, user?.id]);
 
   async function onToggleStar(task: Task) {
     const wasStarred = task.starred;
@@ -261,10 +308,44 @@ export function TeamDetail({ teamId, isUser, onBack }: { teamId: string; isUser:
         </div>
 
         {memberTab === "completed" && user?.admin && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-            <CompletionRateChart data={stat.completionTrend} title="Completion rate" subtitle={`${selectedMember.user.name} — trailing 8 weeks`} />
-            <AvgScoreChart data={stat.completionTrend} title="Average task score" subtitle={`${selectedMember.user.name} — trailing 8 weeks`} />
-          </div>
+          <>
+            <div className="flex items-center gap-2 mb-4">
+              <button
+                onClick={() => setMemberTrendMonth((m) => shiftMonth(m, -1))}
+                className="w-8 h-8 rounded-lg border flex items-center justify-center cursor-pointer hover:bg-[#f8faf9]"
+                style={{ borderColor: "#e3e8e6" }}
+                aria-label="Previous month"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M15 6l-6 6 6 6" /></svg>
+              </button>
+              <input
+                type="month"
+                className="input"
+                style={{ width: "auto" }}
+                value={memberTrendMonth}
+                max={currentMonthStr()}
+                onChange={(e) => e.target.value && setMemberTrendMonth(e.target.value)}
+              />
+              <button
+                onClick={() => setMemberTrendMonth((m) => shiftMonth(m, 1))}
+                disabled={memberTrendMonth >= currentMonthStr()}
+                className="w-8 h-8 rounded-lg border flex items-center justify-center hover:bg-[#f8faf9] disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ borderColor: "#e3e8e6", cursor: memberTrendMonth >= currentMonthStr() ? "default" : "pointer" }}
+                aria-label="Next month"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M9 6l6 6-6 6" /></svg>
+              </button>
+              {memberTrendMonth !== currentMonthStr() && (
+                <button onClick={() => setMemberTrendMonth(currentMonthStr())} className="bg-transparent border-none cursor-pointer text-xs font-semibold p-0" style={{ color: "#2563eb" }}>
+                  This month
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+              <CompletionRateChart data={memberTrend} title="Completion rate" subtitle={`${selectedMember.user.name} — ${monthLabel(memberTrendMonth)}`} />
+              <AvgScoreChart data={memberTrend} title="Average task score" subtitle={`${selectedMember.user.name} — ${monthLabel(memberTrendMonth)}`} />
+            </div>
+          </>
         )}
         <TaskDrawer taskId={openTaskId} onClose={() => setOpenTaskId(null)} onChanged={refresh} />
       </div>
@@ -425,9 +506,41 @@ export function TeamDetail({ teamId, isUser, onBack }: { teamId: string; isUser:
             </div>
           </div>
 
+          <div className="flex items-center gap-2 mb-4">
+            <button
+              onClick={() => setTrendMonth((m) => shiftMonth(m, -1))}
+              className="w-8 h-8 rounded-lg border flex items-center justify-center cursor-pointer hover:bg-[#f8faf9]"
+              style={{ borderColor: "#e3e8e6" }}
+              aria-label="Previous month"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M15 6l-6 6 6 6" /></svg>
+            </button>
+            <input
+              type="month"
+              className="input"
+              style={{ width: "auto" }}
+              value={trendMonth}
+              max={currentMonthStr()}
+              onChange={(e) => e.target.value && setTrendMonth(e.target.value)}
+            />
+            <button
+              onClick={() => setTrendMonth((m) => shiftMonth(m, 1))}
+              disabled={trendMonth >= currentMonthStr()}
+              className="w-8 h-8 rounded-lg border flex items-center justify-center hover:bg-[#f8faf9] disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ borderColor: "#e3e8e6", cursor: trendMonth >= currentMonthStr() ? "default" : "pointer" }}
+              aria-label="Next month"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M9 6l6 6-6 6" /></svg>
+            </button>
+            {trendMonth !== currentMonthStr() && (
+              <button onClick={() => setTrendMonth(currentMonthStr())} className="bg-transparent border-none cursor-pointer text-xs font-semibold p-0" style={{ color: "#2563eb" }}>
+                This month
+              </button>
+            )}
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <CompletionRateChart data={perf.completionTrend} title="Weekly completion rate" subtitle="Whole team, on-time vs. late" />
-            <AvgScoreChart data={perf.completionTrend} title="Average task score" subtitle="Whole team, trailing 8 weeks" />
+            <CompletionRateChart data={trend} title="Weekly completion rate" subtitle={`Whole team — ${monthLabel(trendMonth)}`} />
+            <AvgScoreChart data={trend} title="Average task score" subtitle={`Whole team — ${monthLabel(trendMonth)}`} />
           </div>
         </>
       ) : tab === "review" ? (
