@@ -192,7 +192,7 @@ export default function LoginPage() {
           <form onSubmit={onSubmit} className="hero-in-2 flex flex-col gap-4">
             <div>
               <label className="block text-[12.5px] font-semibold mb-1.5" style={{ color: "#3d4a47" }}>
-                Username or email
+                Employee ID
               </label>
               <div className="lg-field flex items-center gap-2.5 h-[50px] px-4 rounded-xl border" style={{ borderColor: "#dde3ec", background: "#f8fafd" }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9aa6a2" strokeWidth="1.7" className="flex-none">
@@ -201,7 +201,7 @@ export default function LoginPage() {
                 </svg>
                 <input
                   className="border-none outline-none bg-transparent text-[14.5px] w-full"
-                  placeholder="you@company.com"
+                  placeholder="e.g. 1003614"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   autoComplete="username"

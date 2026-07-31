@@ -1,9 +1,14 @@
-import type { User } from '@prisma/client';
-
 declare global {
   namespace Express {
     interface Request {
-      user?: Pick<User, 'id' | 'name' | 'email' | 'isAdmin' | 'teamId'>;
+      user?: {
+        id: string; // maps to empNo
+        name: string;
+        email: string;
+        position: string | null;
+        isAdmin: boolean;
+        teamId: string | null;
+      };
     }
   }
 }

@@ -5,6 +5,7 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { HttpError } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/auth';
 import { toUserSummary, userSummarySelect } from './users';
+import { resolveUserProfileSync, resolveUserProfiles, resolveUserProfile } from '../utils/userResolver';
 
 const router = Router();
 router.use(requireAuth);
@@ -16,8 +17,8 @@ async function canAccessConversation(conversationId: string, userId: string, isA
     if (convo.dmUserAId !== userId && convo.dmUserBId !== userId) return null;
   } else if (convo.kind === 'team') {
     if (!isAdmin) {
-      const me = await prisma.user.findUnique({ where: { id: userId }, select: { teamId: true } });
-      if (me?.teamId !== convo.teamId) return null;
+      const meProfile = await resolveUserProfile(userId);
+      if (meProfile.team !== convo.teamId) return null;
     }
   }
   return convo;
@@ -31,9 +32,6 @@ router.get(
     const teamConvos = await prisma.conversation.findMany({
       where: { kind: 'team', ...(user.isAdmin ? {} : { teamId: user.teamId ?? '__none__' }) },
       include: {
-        team: true,
-        // Bounded, not just the latest — unread counting needs to look back
-        // further than a single "last message" preview does.
         messages: { orderBy: { ts: 'desc' }, take: 200, select: { id: true, text: true, ts: true, fromId: true, from: { select: userSummarySelect } } },
       },
     });
@@ -46,6 +44,18 @@ router.get(
         messages: { orderBy: { ts: 'desc' }, take: 200, select: { id: true, text: true, ts: true, fromId: true, from: { select: userSummarySelect } } },
       },
     });
+
+    // Collect all user IDs involved in conversations to preload their profiles
+    const userIds = new Set<string>();
+    for (const c of teamConvos) {
+      for (const m of c.messages) userIds.add(m.fromId);
+    }
+    for (const c of dmConvos) {
+      if (c.dmUserAId) userIds.add(c.dmUserAId);
+      if (c.dmUserBId) userIds.add(c.dmUserBId);
+      for (const m of c.messages) userIds.add(m.fromId);
+    }
+    await resolveUserProfiles(Array.from(userIds));
 
     const allConvoIds = [...teamConvos, ...dmConvos].map((c) => c.id);
     const reads = await prisma.conversationRead.findMany({ where: { conversationId: { in: allConvoIds } } });
@@ -65,24 +75,25 @@ router.get(
       ...teamConvos.map((c) => ({
         id: c.id,
         kind: 'team' as const,
-        name: c.team!.name,
+        name: c.teamId || '',
         teamId: c.teamId,
         lastMessage: c.messages[0]
-          ? { text: c.messages[0].text, ts: c.messages[0].ts, from: toUserSummary(c.messages[0].from) }
+          ? { text: c.messages[0].text, ts: c.messages[0].ts, from: toUserSummary(c.messages[0].from, resolveUserProfileSync(c.messages[0].fromId)) }
           : null,
         unreadCount: unreadCount(c.id, c.messages),
       })),
       ...dmConvos.map((c) => {
         const other = c.dmUserAId === user.id ? c.dmUserB : c.dmUserA;
-        const otherId = other!.id;
+        const otherId = other!.empNo;
         const otherRead = (readsByConvo.get(c.id) ?? []).find((r) => r.userId === otherId);
+        const resolvedOther = resolveUserProfileSync(otherId);
         return {
           id: c.id,
           kind: 'dm' as const,
-          name: other!.name,
+          name: resolvedOther.name,
           userId: otherId,
           lastMessage: c.messages[0]
-            ? { text: c.messages[0].text, ts: c.messages[0].ts, from: toUserSummary(c.messages[0].from) }
+            ? { text: c.messages[0].text, ts: c.messages[0].ts, from: toUserSummary(c.messages[0].from, resolveUserProfileSync(c.messages[0].fromId)) }
             : null,
           unreadCount: unreadCount(c.id, c.messages),
           otherReadAt: otherRead?.lastReadAt ?? null,
@@ -107,6 +118,9 @@ router.get(
       orderBy: { ts: 'asc' },
     });
 
+    // Preload profiles
+    await resolveUserProfiles(messages.map((m) => m.fromId));
+
     // Read receipts are only shown 1:1 in a DM — in a team channel "seen by
     // whom" is ambiguous, so we don't compute it there.
     let otherReadAt: Date | null = null;
@@ -119,7 +133,7 @@ router.get(
     }
 
     res.json({
-      messages: messages.map((m) => ({ id: m.id, text: m.text, ts: m.ts, from: toUserSummary(m.from) })),
+      messages: messages.map((m) => ({ id: m.id, text: m.text, ts: m.ts, from: toUserSummary(m.from, resolveUserProfileSync(m.fromId)) })),
       otherReadAt,
     });
   }),
@@ -154,7 +168,10 @@ router.post(
       data: { conversationId: convo.id, fromId: req.user!.id, text },
       include: { from: { select: userSummarySelect } },
     });
-    res.status(201).json({ message: { id: message.id, text: message.text, ts: message.ts, from: toUserSummary(message.from) } });
+
+    await resolveUserProfiles([message.fromId]);
+
+    res.status(201).json({ message: { id: message.id, text: message.text, ts: message.ts, from: toUserSummary(message.from, resolveUserProfileSync(message.fromId)) } });
   }),
 );
 

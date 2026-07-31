@@ -7,7 +7,8 @@ import { prisma } from '../db';
 import { asyncHandler } from '../utils/asyncHandler';
 import { HttpError } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/auth';
-import { taskInclude, serializeTask, isOverdue, getViewerContext, type TaskWithRelations } from '../utils/serializeTask';
+import { taskInclude, serializeTask, isOverdue, getViewerContext, preloadProfilesForTasks, type TaskWithRelations } from '../utils/serializeTask';
+import { resolveUserProfileSync } from '../utils/userResolver';
 import { uploadAttachment, deleteAttachment, attachmentFilePath } from '../utils/fileStorage';
 import { sendMail, nudgeEmailHtml } from '../utils/mailer';
 import { env } from '../env';
@@ -52,7 +53,7 @@ router.get(
       where.OR = [{ assignees: { some: { userId: query.assigneeId } } }, { subtasks: { some: { assigneeId: query.assigneeId } } }];
     }
     if (query.createdById) where.createdById = query.createdById;
-    if (query.teamId) where.teamId = query.teamId;
+    if (query.teamId) where.team = query.teamId;
     // Status filtering always happens in JS below, not as a DB `where` clause —
     // a task with subtasks doesn't have one single "status" that means the
     // same thing to every viewer (see the two branches below).
@@ -74,7 +75,7 @@ router.get(
         { subtasks: { some: { assigneeId: user.id } } },
         { createdById: user.id },
       ];
-      if (user.teamId) visibility.push({ teamId: user.teamId });
+      if (user.teamId) visibility.push({ team: user.teamId });
       where.AND = [{ OR: visibility }];
     }
 
@@ -83,6 +84,8 @@ router.get(
       include: taskInclude,
       orderBy: { dueDate: 'asc' },
     });
+
+    await preloadProfilesForTasks(tasks);
 
     if (query.overdue) tasks = tasks.filter((t) => isOverdue(t));
 
@@ -110,7 +113,7 @@ function canViewTask(task: TaskWithRelations, user: { id: string; isAdmin: boole
   if (task.createdById === user.id) return true;
   if (task.assignees.some((a) => a.userId === user.id)) return true;
   if (task.subtasks.some((s) => s.assigneeId === user.id)) return true;
-  if (user.teamId && task.teamId === user.teamId) return true;
+  if (user.teamId && task.team === user.teamId) return true;
   return false;
 }
 
@@ -153,14 +156,11 @@ router.post(
     const body = createTaskSchema.parse(req.body);
     const user = req.user!;
 
-    const team = await prisma.team.findUnique({ where: { id: body.teamId } });
-    if (!team) throw new HttpError(400, 'Unknown team');
-
     const task = await prisma.task.create({
       data: {
         title: body.title,
         description: body.description,
-        teamId: body.teamId,
+        team: body.teamId,
         priority: body.priority,
         impact: body.impact,
         dueDate: new Date(body.dueDate),
@@ -173,6 +173,8 @@ router.post(
       },
       include: taskInclude,
     });
+
+    await preloadProfilesForTasks([task]);
 
     for (const a of task.assignees) {
       await prisma.notification.create({
@@ -243,7 +245,7 @@ router.patch(
         data: {
           title: body.title,
           description: body.description,
-          teamId: body.teamId,
+          team: body.teamId,
           priority: body.priority,
           impact: body.impact,
           dueDate: body.dueDate ? new Date(body.dueDate) : undefined,
@@ -252,6 +254,7 @@ router.patch(
     });
 
     const task = await prisma.task.findUniqueOrThrow({ where: { id: taskId }, include: taskInclude });
+    await preloadProfilesForTasks([task]);
     res.json({ task: serializeTask(task, req.user!.id, req.user!.isAdmin) });
   }),
 );
@@ -272,6 +275,7 @@ router.delete(
 async function requireTask(taskId: string) {
   const task = await prisma.task.findUnique({ where: { id: taskId }, include: taskInclude });
   if (!task) throw new HttpError(404, 'Task not found');
+  await preloadProfilesForTasks([task]);
   return task;
 }
 
@@ -553,16 +557,17 @@ router.post(
         await prisma.notification.create({
           data: { userId: a.userId, type: 'nudged', text: `${user.name} is checking in on "${task.title}"` },
         });
+        const assigneeProfile = resolveUserProfileSync(a.userId);
         await sendMail({
-          to: a.user.email,
+          to: assigneeProfile.email,
           subject: `Reminder: "${task.title}"`,
           text: `${user.name} is checking in on "${task.title}" — please take a look when you can.\n\nDue: ${dueDateText}\n\nOpen it here: ${taskUrl}`,
           html: nudgeEmailHtml({
-            recipientName: a.user.name,
+            recipientName: assigneeProfile.name,
             actorName: user.name,
-            actorTitle: task.createdBy.title,
+            actorTitle: user.position || null,
             taskTitle: task.title,
-            teamName: task.team.name,
+            teamName: task.team,
             priority: task.priority,
             dueDateText,
             dueRelativeText,
