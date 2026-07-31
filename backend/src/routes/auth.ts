@@ -64,11 +64,11 @@ router.post(
     }
 
     // 4. Find or create user in BJC Trackline database
-    let user = await prisma.user.findUnique({ where: { empNo } });
+    let user = await prisma.tlRole.findUnique({ where: { empNo } });
     if (!user) {
       // By default, first user can be admin or we default to false
-      const count = await prisma.user.count();
-      user = await prisma.user.create({
+      const count = await prisma.tlRole.count();
+      user = await prisma.tlRole.create({
         data: {
           empNo,
           isAdmin: count === 0, // Make the first user admin
@@ -87,12 +87,7 @@ router.post(
 
     // Resolve profile details for response
     const profile = await resolveUserProfile(user.empNo);
-    const summary = toUserSummary(user, {
-      name: profile.name,
-      email: profile.email,
-      position: profile.position,
-      team: profile.team,
-    });
+    const summary = toUserSummary(profile);
 
     res.json({ token, user: summary });
   }),
@@ -109,15 +104,14 @@ router.get(
   asyncHandler(async (req, res) => {
     // req.user is already loaded by requireAuth middleware
     const user = req.user!;
-    const summary = toUserSummary(
-      { empNo: user.id, isAdmin: user.isAdmin },
-      {
-        name: user.name,
-        email: user.email,
-        position: user.position,
-        team: user.teamId,
-      }
-    );
+    const summary = toUserSummary({
+      empNo: user.id,
+      name: user.name,
+      email: user.email,
+      position: user.position,
+      team: user.teamId,
+      isAdmin: user.isAdmin,
+    });
     res.json({ user: summary });
   }),
 );

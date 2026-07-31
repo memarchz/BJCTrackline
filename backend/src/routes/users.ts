@@ -10,22 +10,15 @@ export const userSummarySelect = {
   isAdmin: true,
 } as const;
 
-export function toUserSummary(dbUser: { empNo: string; isAdmin: boolean }, profile?: { name: string; email: string; position: string | null; team: string | null }) {
-  const resolved = profile || {
-    name: dbUser.empNo,
-    email: `${dbUser.empNo.toLowerCase()}@bjc.co.th`,
-    position: null,
-    team: null,
-  };
-
+export function toUserSummary(profile: { empNo: string; name: string; email: string; position: string | null; team: string | null; isAdmin: boolean }) {
   return {
-    id: dbUser.empNo,
-    name: resolved.name,
-    email: resolved.email,
-    username: dbUser.empNo,
-    title: resolved.position,
-    admin: dbUser.isAdmin,
-    team: resolved.team ? { id: resolved.team, name: resolved.team } : null,
+    id: profile.empNo,
+    name: profile.name,
+    email: profile.email,
+    username: profile.empNo,
+    title: profile.position,
+    admin: profile.isAdmin,
+    team: profile.team ? { id: profile.team, name: profile.team } : null,
   };
 }
 
@@ -35,15 +28,25 @@ router.use(requireAuth);
 router.get(
   '/',
   asyncHandler(async (req, res) => {
-    const users = await prisma.user.findMany({
-      select: userSummarySelect,
-      orderBy: { empNo: 'asc' },
-    });
+    const gcps = await prisma.masterDataGcp.findMany({ orderBy: { empNo: 'asc' } });
+    const users = await prisma.masterDataUser.findMany({ orderBy: { empNo: 'asc' } });
+    const allMembers = [...gcps, ...users];
 
-    const profiles = await resolveUserProfiles(users.map(u => u.empNo));
-    const summaries = users.map(u => {
-      const p = profiles.get(u.empNo);
-      return toUserSummary(u, p);
+    const tracklineUsers = await prisma.tlRole.findMany({
+      select: { empNo: true, isAdmin: true },
+    });
+    const adminMap = new Map(tracklineUsers.map((u) => [u.empNo.toUpperCase(), u.isAdmin]));
+
+    const summaries = allMembers.map((m) => {
+      const empNoUpper = m.empNo.toUpperCase();
+      return toUserSummary({
+        empNo: m.empNo,
+        name: m.name || m.empNo,
+        email: m.email || '',
+        position: m.position,
+        team: m.team,
+        isAdmin: adminMap.get(empNoUpper) || false,
+      });
     });
 
     res.json({ users: summaries });

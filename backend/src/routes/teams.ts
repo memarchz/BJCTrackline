@@ -109,22 +109,21 @@ router.get(
     const users = await prisma.masterDataUser.findMany({ where: { team: teamId }, orderBy: { name: 'asc' } });
     const allMembers = [...gcps, ...users];
 
-    const tracklineUsers = await prisma.user.findMany({
+    const tracklineUsers = await prisma.tlRole.findMany({
       where: { empNo: { in: allMembers.map((m) => m.empNo) } },
       select: { empNo: true, isAdmin: true },
     });
     const adminMap = new Map(tracklineUsers.map((u) => [u.empNo, u.isAdmin]));
 
     const members = allMembers.map((m) =>
-      toUserSummary(
-        { empNo: m.empNo, isAdmin: adminMap.get(m.empNo) || false },
-        {
-          name: m.name || m.empNo,
-          email: m.email || '',
-          position: m.position,
-          team: m.team,
-        },
-      ),
+      toUserSummary({
+        empNo: m.empNo,
+        name: m.name || m.empNo,
+        email: m.email || '',
+        position: m.position,
+        team: m.team,
+        isAdmin: adminMap.get(m.empNo) || false,
+      }),
     );
 
     res.json({ team: { id: teamId, name: teamId, members } });
@@ -141,7 +140,7 @@ router.get(
     const users = await prisma.masterDataUser.findMany({ where: { team: teamId }, orderBy: { name: 'asc' } });
     const allMembers = [...gcps, ...users];
 
-    const tracklineUsers = await prisma.user.findMany({
+    const tracklineUsers = await prisma.tlRole.findMany({
       where: { empNo: { in: allMembers.map((m) => m.empNo) } },
       select: { empNo: true, isAdmin: true },
     });
@@ -247,10 +246,14 @@ router.get(
         : 0;
 
       return {
-        user: toUserSummary(
-          { empNo: m.empNo, isAdmin: m.isAdmin },
-          { name: m.name, email: m.email, position: m.position, team: m.team },
-        ),
+        user: toUserSummary({
+          empNo: m.empNo,
+          name: m.name,
+          email: m.email,
+          position: m.position,
+          team: m.team,
+          isAdmin: m.isAdmin,
+        }),
         assignedCount: assigned.length,
         completedCount: memberCompleted.length,
         lateCount: memberLateCount,

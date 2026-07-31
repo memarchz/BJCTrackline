@@ -173,7 +173,7 @@ router.get(
       where: {
         task: { OR: [{ assignees: { some: { userId: user.id } } }, { subtasks: { some: { assigneeId: user.id } } }] },
       },
-      include: { by: { select: userSummarySelect }, task: { select: { id: true, title: true } } },
+      include: { task: { select: { id: true, title: true } } },
       orderBy: { ts: 'desc' },
       take: 10,
     });
@@ -199,7 +199,7 @@ router.get(
         ts: l.ts,
         action: l.action,
         note: l.note,
-        by: toUserSummary(l.by, resolveUserProfileSync(l.byId)),
+        by: toUserSummary(resolveUserProfileSync(l.byId)),
         task: l.task,
       })),
       upcomingForMe: upcomingForMe.map((c) => serializeTask(c.task, user.id, user.isAdmin)),

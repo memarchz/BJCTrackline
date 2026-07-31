@@ -7,6 +7,7 @@ export interface UserProfile {
   position: string | null;
   team: string | null;
   cobuName: string | null;
+  isAdmin: boolean;
 }
 
 // In-memory cache for profiles to avoid hitting database constantly
@@ -28,6 +29,12 @@ export async function resolveUserProfile(empNo: string): Promise<UserProfile> {
     });
   }
 
+  // 3. Try User to get isAdmin role
+  const dbUser = await prisma.tlRole.findUnique({
+    where: { empNo: empNo.toUpperCase() },
+    select: { isAdmin: true },
+  });
+
   const profile: UserProfile = {
     empNo: empNo.toUpperCase(),
     name: emp?.name || empNo,
@@ -35,6 +42,7 @@ export async function resolveUserProfile(empNo: string): Promise<UserProfile> {
     position: emp?.position || null,
     team: emp?.team || null,
     cobuName: emp?.cobuName || null,
+    isAdmin: dbUser?.isAdmin || false,
   };
 
   profileCache.set(empNo.toUpperCase(), profile);
@@ -51,6 +59,7 @@ export function resolveUserProfileSync(empNo: string): UserProfile {
     position: null,
     team: null,
     cobuName: null,
+    isAdmin: false,
   };
 }
 
@@ -83,6 +92,12 @@ export async function resolveUserProfiles(empNos: string[]): Promise<Map<string,
         })
       : [];
 
+    const dbUsers = await prisma.tlRole.findMany({
+      where: { empNo: { in: missingEmpNos } },
+      select: { empNo: true, isAdmin: true },
+    });
+    const adminMap = new Map(dbUsers.map(u => [u.empNo.toUpperCase(), u.isAdmin]));
+
     const allFound = [...gcps, ...users];
     
     for (const empNo of missingEmpNos) {
@@ -94,6 +109,7 @@ export async function resolveUserProfiles(empNos: string[]): Promise<Map<string,
         position: dbEmp?.position || null,
         team: dbEmp?.team || null,
         cobuName: dbEmp?.cobuName || null,
+        isAdmin: adminMap.get(empNo) || false,
       };
       profileCache.set(empNo, profile);
       result.set(empNo, profile);

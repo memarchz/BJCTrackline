@@ -61,24 +61,12 @@ enum TorStatus {
   completed
 }
 
-model User {
+model TlRole {
   empNo     String   @id @map("emp_no")
   isAdmin   Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  assignedTasks   TaskAssignee[]
-  createdTasks    Task[]           @relation("TaskCreatedBy")
-  subtasks        Subtask[]
-  logEntries      TaskLogEntry[]
-  attachments     Attachment[]
-  starredTasks    StarredTask[]
-  notifications   Notification[]
-  sentMessages    Message[]
-  conversationReads ConversationRead[]
-  dmConversationsA Conversation[] @relation("ConversationDmUserA")
-  dmConversationsB Conversation[] @relation("ConversationDmUserB")
-  torRequests     TorRequest[]     @relation("TorRequester")
-  torReviews      TorRequest[]     @relation("TorReviewer")
+  @@map("TL_Role")
 }
 
 model MasterDataGcp {
@@ -117,7 +105,6 @@ model Task {
 
   team   String @map("teamId")
 
-  createdBy   User   @relation("TaskCreatedBy", fields: [createdById], references: [empNo])
   createdById String
 
   dueDate       DateTime
@@ -144,7 +131,6 @@ model Task {
 model TaskAssignee {
   task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
   taskId String
-  user   User   @relation(fields: [userId], references: [empNo], onDelete: Cascade)
   userId String
 
   // Set when the task owner "nudges" this assignee to follow up; cleared when
@@ -167,7 +153,6 @@ model Subtask {
   task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
   taskId String
 
-  assignee   User?   @relation(fields: [assigneeId], references: [empNo])
   assigneeId String?
 
   // falls back to the parent task's dueDate when null
@@ -193,7 +178,6 @@ model TaskLogEntry {
   subtask   Subtask? @relation(fields: [subtaskId], references: [id], onDelete: Cascade)
   subtaskId String?
 
-  by   User   @relation(fields: [byId], references: [empNo])
   byId String
 
   @@index([taskId])
@@ -210,14 +194,12 @@ model Attachment {
   task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
   taskId String
 
-  uploadedBy   User   @relation(fields: [uploadedById], references: [empNo])
   uploadedById String
 
   @@map("TL_Attachment")
 }
 
 model StarredTask {
-  user   User   @relation(fields: [userId], references: [empNo], onDelete: Cascade)
   userId String
   task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
   taskId String
@@ -240,10 +222,7 @@ model TorRequest {
   // whether the most recent chief review was a rejection (comment reflects that review either way)
   rejected    Boolean   @default(false)
 
-  requester   User   @relation("TorRequester", fields: [requesterId], references: [empNo])
   requesterId String
-
-  reviewer   User?   @relation("TorReviewer", fields: [reviewerId], references: [empNo])
   reviewerId String?
 
   createdAt DateTime @default(now())
@@ -258,11 +237,7 @@ model Conversation {
 
   teamId String? @unique
 
-  // DM — two fixed participants (dmUserAId always the lexicographically
-  // smaller id, enforced app-side) so a pair maps to exactly one conversation
-  dmUserA   User?   @relation("ConversationDmUserA", fields: [dmUserAId], references: [empNo])
   dmUserAId String?
-  dmUserB   User?   @relation("ConversationDmUserB", fields: [dmUserBId], references: [empNo])
   dmUserBId String?
 
   messages Message[]
@@ -275,7 +250,6 @@ model Conversation {
 model ConversationRead {
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   conversationId String
-  user           User         @relation(fields: [userId], references: [empNo], onDelete: Cascade)
   userId         String
   lastReadAt     DateTime     @default(now())
 
@@ -291,7 +265,6 @@ model Message {
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   conversationId String
 
-  from   User   @relation(fields: [fromId], references: [empNo])
   fromId String
 
   @@index([conversationId])
@@ -305,7 +278,6 @@ model Notification {
   ts   DateTime         @default(now())
   read Boolean          @default(false)
 
-  user   User   @relation(fields: [userId], references: [empNo], onDelete: Cascade)
   userId String
 
   @@index([userId])

@@ -10,11 +10,6 @@ import { resolveUserProfileSync, resolveUserProfiles } from '../utils/userResolv
 const router = Router();
 router.use(requireAuth);
 
-const torInclude = {
-  requester: { select: userSummarySelect },
-  reviewer: { select: userSummarySelect },
-} as const;
-
 function serializeTor(t: {
   id: string;
   project: string;
@@ -26,8 +21,8 @@ function serializeTor(t: {
   step: number;
   comment: string | null;
   rejected: boolean;
-  requester: Parameters<typeof toUserSummary>[0];
-  reviewer: Parameters<typeof toUserSummary>[0] | null;
+  requesterId: string;
+  reviewerId: string | null;
 }) {
   return {
     id: t.id,
@@ -40,15 +35,15 @@ function serializeTor(t: {
     step: t.step,
     comment: t.comment,
     rejected: t.rejected,
-    requester: toUserSummary(t.requester, resolveUserProfileSync(t.requester.empNo)),
-    reviewer: t.reviewer ? toUserSummary(t.reviewer, resolveUserProfileSync(t.reviewer.empNo)) : null,
+    requester: toUserSummary(resolveUserProfileSync(t.requesterId)),
+    reviewer: t.reviewerId ? toUserSummary(resolveUserProfileSync(t.reviewerId)) : null,
   };
 }
 
 router.get(
   '/',
   asyncHandler(async (req, res) => {
-    const requests = await prisma.torRequest.findMany({ include: torInclude, orderBy: { openedDate: 'desc' } });
+    const requests = await prisma.torRequest.findMany({ orderBy: { openedDate: 'desc' } });
     
     // Preload requester and reviewer profiles
     const userIds = new Set<string>();
@@ -85,7 +80,6 @@ router.post(
         step: 0,
         requesterId: req.user!.id,
       },
-      include: torInclude,
     });
 
     await resolveUserProfiles([request.requesterId]);
@@ -115,7 +109,6 @@ router.patch(
       const updated = await prisma.torRequest.update({
         where: { id: existing.id },
         data: { comment: body.comment, rejected: true, reviewerId: req.user!.id },
-        include: torInclude,
       });
 
       const userIds = [updated.requesterId];
@@ -135,7 +128,6 @@ router.patch(
         rejected: false,
         reviewerId: req.user!.id,
       },
-      include: torInclude,
     });
 
     const userIds = [updated.requesterId];
