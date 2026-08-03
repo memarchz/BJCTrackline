@@ -13,15 +13,28 @@ import chatRoutes from './routes/chat';
 import notificationRoutes from './routes/notifications';
 import dashboardRoutes from './routes/dashboard';
 
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+
 export const app = express();
 
+const loginLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 1000, // Higher limit for local productivity
+  skip: () => process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development',
+  message: { error: 'ส่งคำขอเข้าสู่ระบบบ่อยเกินไป กรุณาลองใหม่ในอีก 5 นาที' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use(helmet());
 app.use(cors({ origin: env.corsOrigin, credentials: true }));
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', loginLimiter, authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/tasks', taskRoutes);

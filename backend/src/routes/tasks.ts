@@ -151,8 +151,19 @@ const createTaskSchema = z
   );
 
 async function ensureUsersExist(empNos: string[]) {
-  const unique = Array.from(new Set(empNos.filter(Boolean)));
+  const unique = Array.from(new Set(empNos.filter(Boolean).map(e => e.toUpperCase())));
   if (unique.length === 0) return;
+
+  // Verify that employee exists in Master Data before auto-provisioning a role
+  const gcps = await prisma.masterDataGcp.findMany({ where: { empNo: { in: unique } }, select: { empNo: true } });
+  const users = await prisma.masterDataUser.findMany({ where: { empNo: { in: unique } }, select: { empNo: true } });
+  const validEmpNos = new Set([...gcps.map(g => g.empNo.toUpperCase()), ...users.map(u => u.empNo.toUpperCase())]);
+
+  const invalid = unique.filter(empNo => !validEmpNos.has(empNo));
+  if (invalid.length > 0) {
+    throw new HttpError(400, `ไม่พบข้อมูลพนักงานสำหรับ: ${invalid.join(', ')}`);
+  }
+
   await prisma.tlRole.createMany({
     data: unique.map((empNo) => ({ empNo, isAdmin: false })),
     skipDuplicates: true,
@@ -230,6 +241,12 @@ router.patch(
     if (!req.user!.isAdmin && existing.createdById !== req.user!.id) {
       throw new HttpError(403, 'Only the creator or an admin can edit this task');
     }
+
+    const empNosToEnsure = [
+      ...(body.assigneeIds ?? []),
+      ...(body.subtasks ?? []).map((s) => s.assigneeId).filter((id): id is string => !!id),
+    ];
+    await ensureUsersExist(empNosToEnsure);
 
     await prisma.$transaction(async (tx) => {
       if (body.assigneeIds) {
@@ -328,9 +345,13 @@ router.post(
 // always forces `Content-Disposition: attachment`, which makes the browser
 // silently save the file instead of showing it in the tab window.open()
 // navigated to (the whole point for an image/PDF preview).
-function inlineDisposition(filename: string): string {
+const SAFE_PREVIEW_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf'];
+
+function getDisposition(filename: string): string {
+  const ext = filename.slice(filename.lastIndexOf('.')).toLowerCase();
+  const dispositionType = SAFE_PREVIEW_EXTENSIONS.includes(ext) ? 'inline' : 'attachment';
   const asciiFallback = filename.replace(/["\\]/g, '_').replace(/[^\x20-\x7E]/g, '_');
-  return `inline; filename="${asciiFallback}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
+  return `${dispositionType}; filename="${asciiFallback}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
 }
 
 // Streams the file straight from disk — checked on every request (not a
@@ -343,7 +364,7 @@ router.get(
     const attachment = task.attachments.find((a) => a.id === req.params.attachmentId);
     if (!attachment) throw new HttpError(404, 'Attachment not found');
 
-    res.setHeader('Content-Disposition', inlineDisposition(attachment.name));
+    res.setHeader('Content-Disposition', getDisposition(attachment.name));
     res.sendFile(attachmentFilePath(attachment.key), (err) => {
       if (err && !res.headersSent) res.status(404).json({ error: 'File not found on disk' });
     });
@@ -443,7 +464,14 @@ router.post(
     const { ids } = bulkIdsSchema.parse(req.body);
     const user = req.user!;
     const tasks = await prisma.task.findMany({
-      where: { id: { in: ids }, status: 'completed', assignees: { some: { userId: user.id } } },
+      where: {
+        id: { in: ids },
+        status: 'completed',
+        OR: [
+          { assignees: { some: { userId: user.id } } },
+          { subtasks: { some: { assigneeId: user.id } } }
+        ]
+      },
     });
     await prisma.$transaction(
       tasks.map((t) =>

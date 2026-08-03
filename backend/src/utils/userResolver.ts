@@ -11,11 +11,14 @@ export interface UserProfile {
 }
 
 // In-memory cache for profiles to avoid hitting database constantly
-const profileCache = new Map<string, UserProfile>();
+const profileCache = new Map<string, { profile: UserProfile; ts: number }>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 export async function resolveUserProfile(empNo: string): Promise<UserProfile> {
   const cached = profileCache.get(empNo.toUpperCase());
-  if (cached) return cached;
+  if (cached && (Date.now() - cached.ts) < CACHE_TTL_MS) {
+    return cached.profile;
+  }
 
   // 1. Try MasterDataGcp
   let emp = await prisma.masterDataGcp.findUnique({
@@ -45,13 +48,15 @@ export async function resolveUserProfile(empNo: string): Promise<UserProfile> {
     isAdmin: dbUser?.isAdmin || false,
   };
 
-  profileCache.set(empNo.toUpperCase(), profile);
+  profileCache.set(empNo.toUpperCase(), { profile, ts: Date.now() });
   return profile;
 }
 
 export function resolveUserProfileSync(empNo: string): UserProfile {
   const cached = profileCache.get(empNo.toUpperCase());
-  if (cached) return cached;
+  if (cached && (Date.now() - cached.ts) < CACHE_TTL_MS) {
+    return cached.profile;
+  }
   return {
     empNo: empNo.toUpperCase(),
     name: empNo,
@@ -70,8 +75,8 @@ export async function resolveUserProfiles(empNos: string[]): Promise<Map<string,
 
   for (const empNo of uniqueEmpNos) {
     const cached = profileCache.get(empNo);
-    if (cached) {
-      result.set(empNo, cached);
+    if (cached && (Date.now() - cached.ts) < CACHE_TTL_MS) {
+      result.set(empNo, cached.profile);
     } else {
       missingEmpNos.push(empNo);
     }
@@ -111,7 +116,7 @@ export async function resolveUserProfiles(empNos: string[]): Promise<Map<string,
         cobuName: dbEmp?.cobuName || null,
         isAdmin: adminMap.get(empNo) || false,
       };
-      profileCache.set(empNo, profile);
+      profileCache.set(empNo, { profile, ts: Date.now() });
       result.set(empNo, profile);
     }
   }

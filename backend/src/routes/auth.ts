@@ -89,7 +89,7 @@ router.post(
     const profile = await resolveUserProfile(user.empNo);
     const summary = toUserSummary(profile);
 
-    res.json({ token, user: summary });
+    res.json({ user: summary });
   }),
 );
 

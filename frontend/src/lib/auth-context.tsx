@@ -19,23 +19,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = getToken();
-    if (!token) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-time auth check, not derived render state
-      setLoading(false);
-      return;
-    }
     api
       .get("/auth/me")
       .then((res) => setUser(res.data.user))
-      .catch(() => clearToken())
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   const login = useCallback(async (identifier: string, password: string, remember?: boolean) => {
     try {
       const res = await api.post("/auth/login", { identifier, password, remember });
-      setToken(res.data.token);
       setUser(res.data.user);
     } catch (error) {
       throw new Error(apiErrorMessage(error, "Invalid username/email or password"));

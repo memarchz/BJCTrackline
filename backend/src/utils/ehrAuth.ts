@@ -1,11 +1,10 @@
 import axios from 'axios';
 import https from 'https';
-import { prisma } from '../db';
 
 const EHR_TIMEOUT_MS = 8000;
 
 const httpsAgent = new https.Agent({
-  rejectUnauthorized: false,
+  rejectUnauthorized: process.env.NODE_ENV === 'production' ? true : false,
 });
 
 export async function verifyViaEhr(empno: string, password: string): Promise<boolean> {
@@ -55,10 +54,20 @@ export async function fetchEmployeeProfile(empno: string): Promise<{
   team: string | null;
   cobuName: string | null;
 } | null> {
-  const profileUrl = `https://ehr.bjc.co.th/API/PUR/api/EmployeeProfile/${empno}`;
+  const url = process.env.EHR_API_URL;
+  const apiKey = process.env.EHR_API_KEY;
+  if (!url || !apiKey) {
+    console.warn("[ehrAuth] EHR_API_URL or EHR_API_KEY is not configured.");
+    return null;
+  }
+
+  const profileUrl = `${url.replace(/\/$/, '')}/API/PUR/api/EmployeeProfile/${empno}`;
 
   try {
     const response = await axios.get(profileUrl, {
+      headers: {
+        'X-API-Key': apiKey,
+      },
       timeout: EHR_TIMEOUT_MS,
       httpsAgent,
     });

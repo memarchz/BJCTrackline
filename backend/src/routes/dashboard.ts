@@ -204,7 +204,7 @@ router.get(
     // "completion rate," which only credits on-time work.
     const shortDate = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const completionTrend: { label: string; onTimeRate: number; lateRate: number; avgScore: number }[] = [];
-    for (let bucketStart = new Date(rangeStart); bucketStart < rangeEnd; ) {
+    for (let bucketStart = new Date(rangeStart); bucketStart < rangeEnd;) {
       const bucketEnd = new Date(Math.min(bucketStart.getTime() + 7 * 24 * 60 * 60 * 1000, rangeEnd.getTime()));
       const dueInBucket = units.filter((u) => u.dueDate >= bucketStart && u.dueDate < bucketEnd);
       const completedInBucket = units.filter(

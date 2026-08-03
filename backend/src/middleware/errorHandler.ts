@@ -9,6 +9,9 @@ export class HttpError extends Error {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function errorHandler(err: unknown, req: Request, res: Response, next: NextFunction) {
+  if (err instanceof SyntaxError && 'status' in err && err.status === 400 && 'body' in err) {
+    return res.status(400).json({ error: 'รูปแบบข้อมูล JSON ไม่ถูกต้อง' });
+  }
   if (err instanceof HttpError) {
     return res.status(err.status).json({ error: err.message });
   }
