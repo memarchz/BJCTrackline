@@ -3,10 +3,16 @@ import { test, expect } from '@playwright/test';
 test.describe('BJC Trackline Full-Scope E2E Tests', () => {
 
   test.beforeEach(async ({ page }) => {
+    const testUser = process.env.PLAYWRIGHT_USER;
+    const testPass = process.env.PLAYWRIGHT_PASS;
+    if (!testUser || !testPass) {
+      throw new Error("Missing PLAYWRIGHT_USER or PLAYWRIGHT_PASS environment variables in frontend/.env.local!");
+    }
+
     // Perform login once before each test case to keep tests independent
     await page.goto('/login');
-    await page.fill('input[placeholder="e.g. 1003614"]', '5005430');
-    await page.fill('input[placeholder="••••••••"]', 'P6150K');
+    await page.fill('input[placeholder="e.g. 1003614"]', testUser);
+    await page.fill('input[placeholder="••••••••"]', testPass);
     await page.click('button[type="submit"]');
     await expect(page.getByRole('link', { name: 'Dashboard' }).first()).toBeVisible();
   });
@@ -114,6 +120,9 @@ test.describe('BJC Trackline Full-Scope E2E Tests', () => {
 
     // 3. Choose "Group task"
     await page.click('button:has-text("Group task")');
+
+    // Wait for form inputs to be ready
+    await page.waitForSelector('input[placeholder="e.g. Draft Q3 rollout plan"]');
 
     // 4. Fill in task details
     const uniqueTitle = `E2E Full Workflow ${Date.now()}`;

@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BJC Trackline — Frontend
 
-## Getting Started
+Next.js 16 + TypeScript web client interface.
 
-First, run the development server:
+## Setup
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. Copy `.env.example` to `.env.local`.
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
+4. Open [http://localhost:3000](http://localhost:3000) with your browser.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Testing
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Playwright is configured to run end-to-end (E2E) UI testing. 
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Running E2E tests
 
-## Learn More
+1. Ensure the Next.js dev server is running on `http://localhost:3000` (or the backend on `http://localhost:4000`).
+2. Execute Playwright tests:
+   ```bash
+   npm run test:e2e
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+Tests cover 12 comprehensive user journeys:
+- **Authentication**: Form checks and secure dashboard entry redirection.
+- **Pages & Data Fetching**: Dashboard statistics, Starred Tasks, Current Tasks (New Tasks / In Progress), Pending Review, Teams Performance, History archives, TOR procurement Request forms, Chat interface, static guide instructions, and Calendar note saving with local storage.
+- **Admin Access Control**: Access authorization checks for `/admin/teams`, `/admin/users`, and `/admin/accounts`.
+- **Full-scale Task Workflow**: Simulation of task creation, starting it, submitting, approving, and archiving in the list.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Scripts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `npm run dev` — start Next.js dev server
+- `npm run build` — build Next.js for production
+- `npm run start` — start production Next.js server
+- `npm run lint` — check for code quality and lints
+- `npm run test:e2e` — execute E2E browser tests using Playwright

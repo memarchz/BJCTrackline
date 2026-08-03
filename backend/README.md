@@ -17,10 +17,22 @@ Express + TypeScript REST API backed by Postgres (Neon) via Prisma.
    npm run dev               # starts the API on http://localhost:4000
    ```
 
-Demo accounts (all use password `Password123!`):
+Login accounts:
+- **EHR Account (Admin)** — User: `<ESS_ID>` / Pass: `<ESS_PASSWORD>`
+- Local Seed Accounts (Password `Password123!`):
+  - Admin — `sarah.chen@bjctrackline.test`
+  - Non-admin — `priya.patel@bjctrackline.test`
 
-- Admin — `sarah.chen@bjctrackline.test`
-- Non-admin — `priya.patel@bjctrackline.test`
+## Testing
+
+Integration tests are implemented using **Vitest** and **Supertest**. 
+- Database operations in each test run within a PostgreSQL Transaction that is rolled back after each test case (`db.$transaction`). This preserves existing database data completely.
+- Skip rate limiters during local development and testing to prevent API lockouts.
+
+To run the backend test suite:
+```bash
+npm run test
+```
 
 ## Scripts
 
@@ -30,11 +42,12 @@ Demo accounts (all use password `Password123!`):
 - `npm run prisma:deploy` — apply existing migrations (CI/production)
 - `npm run prisma:studio` — browse the database
 - `npm run seed` — reset and reseed demo data
+- `npm run test` — run integration tests
 
 ## API surface
 
-All routes are under `/api` and (except `/api/auth/login`) require a `Bearer` token or the
-`token` cookie set at login.
+All routes are under `/api` and require a secure HTTP-only `token` cookie or Bearer token header set at login.
+EHR login authentication automatically falls back to standard mock EHR authentication validation when credentials cannot be queried locally.
 
 - `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`
 - `GET/POST/PATCH/DELETE /api/users` — accounts, team assignment (admin for writes)
@@ -47,23 +60,10 @@ All routes are under `/api` and (except `/api/auth/login`) require a `Bearer` to
 - `GET/PATCH /api/notifications`
 - `GET /api/dashboard` — role-scoped stats, trends, due-soon, recent activity
 
-## File storage (Cloudflare R2)
+## File storage (Local Disk)
 
-Task attachments (`POST /api/tasks/:id/attachments`) upload directly to a Cloudflare R2
-bucket via the S3-compatible API (`@aws-sdk/client-s3`, no separate R2 SDK needed).
-**The bucket stays private** — no public access setting to enable. Downloads go
-through a short-lived signed URL (5 min) minted on demand via
-`GET /api/tasks/:id/attachments/:attachmentId/download-url`, so a leaked link
-expires quickly instead of exposing the file forever.
+Task attachments (`POST /api/tasks/:id/attachments`) upload directly to the server's local disk inside the configured directory (defaults to `./uploads`). 
 
-1. Create an R2 bucket in the Cloudflare dashboard (leave public access off).
-2. Create an R2 API token (Account → R2 → Manage API tokens) with read/write access to the bucket.
-3. Fill in `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME` in `.env`.
+1. The target folder is defined by `UPLOADS_DIR` in `.env` (fallback is a directory named `uploads` next to the package).
+2. Download URL requests return the local file stream path with strict validation mapping to prevent path traversal vulnerability (`..` escapes).
 
-Until these env vars are set, the rest of the API works fine — only the attachment
-upload/download/delete endpoints will error.
-
-## Notes
-
-- Task statuses: `todo → in_progress → submitted → (rejected | completed)`. `late` is
-  `null` until a task is actioned, then `true`/`false`.
